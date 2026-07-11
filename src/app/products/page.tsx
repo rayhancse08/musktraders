@@ -7,7 +7,7 @@ import { Pagination } from "@/components/inventory/pagination";
 import {
   TabSwitcher, SearchInput, FormSelect, FormLabel, FormInput, FormTextarea,
   PrimaryButton, SecondaryButton, AlertError, EmptyState, DeleteModal, Badge,
-  SectionLoader,
+  SectionLoader, TableLoader,
 } from "@/components/inventory/ui-primitives";
 import {
   Product, ProductDetail, ProductCategory,
@@ -21,6 +21,7 @@ import {
 } from "@/hooks/useProducts";
 import { useBrands } from "@/hooks/useBrands";
 import { apiFetch } from "@/lib/apiFetch";
+import { getApiBase } from "@/lib/api-config";
 
 function ProductPlaceholder({ name }: { name?: string }) {
   return (
@@ -48,18 +49,40 @@ function ProductPlaceholder({ name }: { name?: string }) {
   );
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
-const API = `${BASE_URL}/api`;
 const fmt = (v: string | number | null | undefined) =>
   v ? "$" + parseFloat(String(v)).toLocaleString("en-BD", { minimumFractionDigits: 2 }) : "—";
 
 // ── Stock badge ────────────────────────────────────────────────────────────
 function StockBadge({ qty }: { qty: number | null }) {
   if (qty === null || qty === 0)
-    return <span className="text-xs bg-red-50 text-red-600 border border-red-200 px-2 py-0.5 rounded-full">Out of stock</span>;
+    return <Badge variant="danger">Out of stock</Badge>;
   if (qty <= 5)
-    return <span className="text-xs bg-orange-50 text-orange-600 border border-orange-200 px-2 py-0.5 rounded-full">Low — {qty}</span>;
-  return <span className="text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">{qty} ctn</span>;
+    return <Badge variant="warning">Low — {qty}</Badge>;
+  return <Badge variant="success">{qty} ctn</Badge>;
+}
+
+function ProductThumb({ product }: { product: Product }) {
+  const [imgError, setImgError] = useState(false);
+  const src = product.image || product.thumbnail;
+
+  if (!src || imgError) {
+    return (
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeWidth="1.5" d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
+        </svg>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={product.name ?? "Product"}
+      className="h-10 w-10 shrink-0 rounded-lg border border-slate-200 object-cover"
+      onError={() => setImgError(true)}
+    />
+  );
 }
 
 // ── Delete confirm (categories use shared DeleteModal) ─────────────────────
@@ -160,7 +183,7 @@ export default function ProductsPage() {
     try {
       const detail: ProductDetail = "description" in p && p.description !== undefined
         ? (p as ProductDetail)
-        : await apiFetch(`${API}/products/${p.id}/`);
+        : await apiFetch(`${getApiBase()}/products/${p.id}/`);
 
       setProductEditId(p.id);
       setProductForm({
@@ -287,79 +310,98 @@ export default function ProductsPage() {
             </div>
           </div>
 
-          {/* Product grid */}
-          {productsLoading && <SectionLoader message="Loading products..." />}
-          {!productsLoading && products.length === 0 && (
-            <EmptyState message="No products found. Try adjusting your search or add a new product." />
-          )}
-
-          {!productsLoading && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
-            {products.map((p) => (
-              <div
-                key={p.id}
-                onClick={() => setDetailId(p.id)}
-                className="bg-white dark:bg-gray-dark border border-gray-200/80 dark:border-dark-3 rounded-2xl overflow-hidden cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all duration-300 group"
-              >
-                {/* Product image */}
-                <div className="aspect-square bg-gray-50 relative overflow-hidden">
-                  {p.image ? (
-                    <>
-                      <img
-                        src={p.image}
-                        alt={p.name ?? ""}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display = "none";
-                          const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                          if (fallback) fallback.style.display = "flex";
-                        }}
-                      />
-                      <div className="hidden absolute inset-0">
-                        <ProductPlaceholder name={p.name ?? undefined} />
-                      </div>
-                    </>
-                  ) : (
-                    <ProductPlaceholder name={p.name ?? undefined} />
+          {/* Product table */}
+          <div className="card mb-6 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="table-modern w-full">
+                <thead>
+                  <tr>
+                    {["Product", "Brand", "Category", "Weight", "Sale Price", "Packet Price", "Stock", "Discount", "Actions"].map((h) => (
+                      <th
+                        key={h}
+                        className={["Sale Price", "Packet Price", "Actions"].includes(h) ? "text-right" : "text-left"}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {productsLoading && <TableLoader colSpan={9} message="Loading products..." />}
+                  {!productsLoading && products.length === 0 && (
+                    <tr>
+                      <td colSpan={9} className="py-16 text-center text-slate-400">
+                        No products found. Try adjusting your search or add a new product.
+                      </td>
+                    </tr>
                   )}
-
-                  {/* Discount badge stays same */}
-                  {p.discount && (
-                    <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-md">
-                      {p.discount_type === "percentage" ? `-${p.discount}%` : `-৳${p.discount}`}
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-3">
-                  <p className="font-medium text-gray-800 text-sm leading-tight line-clamp-2 mb-1">{p.name ?? "Unnamed"}</p>
-                  <p className="text-xs text-gray-400 mb-2">{p.brand_name} · {p.category_name}</p>
-
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <p className="font-mono text-sm font-semibold text-gray-800">{fmt(p.sale_price)}</p>
-                      {p.packet_price && (
-                        <p className="font-mono text-xs text-gray-400">{fmt(p.packet_price)}/pkt</p>
-                      )}
-                    </div>
-                    <StockBadge qty={p.stocked_quantity} />
-                  </div>
-
-                  <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => openEditProduct(p)}
-                      className="flex-1 text-xs text-blue-600 bg-blue-50 py-1 rounded-md hover:bg-blue-100 font-medium text-center"
-                    >Edit</button>
-                    <button
-                      onClick={() => setProductDeleteId(p.id)}
-                      className="text-xs text-red-500 bg-red-50 px-2 py-1 rounded-md hover:bg-red-100 font-medium"
-                    >✕</button>
-                  </div>
-                </div>
-              </div>
-            ))}
+                  {!productsLoading && products.map((p) => (
+                    <tr
+                      key={p.id}
+                      onClick={() => setDetailId(p.id)}
+                      className="group cursor-pointer"
+                    >
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <ProductThumb product={p} />
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-slate-900">{p.name ?? "Unnamed"}</p>
+                            {p.packet_per_carton && (
+                              <p className="text-xs text-slate-400">{p.packet_per_carton} pkt/ctn</p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-xs font-bold text-indigo-700">
+                            {p.brand_name?.[0]?.toUpperCase() ?? "?"}
+                          </div>
+                          <span className="font-medium text-slate-700">{p.brand_name ?? "—"}</span>
+                        </div>
+                      </td>
+                      <td className="text-slate-600">{p.category_name ?? "—"}</td>
+                      <td className="text-slate-600">{p.weight}{p.unit}</td>
+                      <td className="text-right font-mono font-semibold text-slate-900">{fmt(p.sale_price)}</td>
+                      <td className="text-right font-mono text-slate-500">{fmt(p.packet_price)}</td>
+                      <td><StockBadge qty={p.stocked_quantity} /></td>
+                      <td>
+                        {p.discount ? (
+                          <span className="badge bg-red-50 text-red-700">
+                            {p.discount_type === "percentage" ? `-${p.discount}%` : `-৳${p.discount}`}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => setDetailId(p.id)}
+                            className="rounded-lg px-2.5 py-1 text-xs font-medium text-indigo-600 transition hover:bg-indigo-50"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => openEditProduct(p)}
+                            className="rounded-lg px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => setProductDeleteId(p.id)}
+                            className="rounded-lg px-2.5 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-          )}
 
           {/* Pagination */}
           {pages > 1 && (

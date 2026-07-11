@@ -27,14 +27,14 @@ export default function SignIn() {
                 <Image
                   className="hidden dark:block"
                   src={"/images/logo/logo.svg"}
-                  alt="Logo"
+                  alt="Nextera Inventory Solution logo"
                   width={176}
                   height={32}
                 />
                 <Image
                   className="dark:hidden"
                   src={"/images/logo/logo-dark.svg"}
-                  alt="Logo"
+                  alt="Nextera Inventory Solution logo"
                   width={176}
                   height={32}
                 />
@@ -55,7 +55,7 @@ export default function SignIn() {
               <div className="mt-31">
                 <Image
                   src={"/images/grids/grid-02.svg"}
-                  alt="Logo"
+                  alt="Decorative grid illustration"
                   width={405}
                   height={325}
                   className="mx-auto dark:opacity-30"

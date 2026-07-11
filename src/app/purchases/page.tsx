@@ -3,12 +3,11 @@
 import React, { useEffect, useState, useCallback } from "react";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { apiFetch } from "@/lib/apiFetch";
+import { getApiBase } from "@/lib/api-config";
 import { Purchase, PurchaseDetail, PurchaseFormData } from "@/types/purchase";
 import PurchaseTable from "@/components/Purchases/PurchaseTable";
 import PurchaseCreateModal from "@/components/Purchases/PurchaseCreateModal";
 import PurchaseDetailModal from "@/components/Purchases/PurchaseDetailModal";
-
-const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
 const EMPTY_FORM: PurchaseFormData = {
   date: new Date().toISOString().slice(0, 10),
@@ -53,7 +52,7 @@ export default function PurchasesPage() {
     params.set("page", String(page));
     setLoading(true);
     try {
-      const data = await apiFetch(`${BASE}/purchases/?${params}`);
+      const data = await apiFetch(`${getApiBase()}/purchases/?${params}`);
       setPurchases(data.results ?? data);
       setTotal(data.count ?? data.length);
     } catch (e) {
@@ -69,7 +68,7 @@ export default function PurchasesPage() {
     setDetailLoading(true);
     setDetailOpen(true);
     try {
-      const data = await apiFetch(`${BASE}/purchases/${id}/`);
+      const data = await apiFetch(`${getApiBase()}/purchases/${id}/`);
       setDetailPurchase(data);
     } catch (e) {
       console.error(e);
@@ -82,7 +81,7 @@ export default function PurchasesPage() {
     setSaving(true);
     setError(null);
     try {
-      await apiFetch(`${BASE}/purchases/`, {
+      await apiFetch(`${getApiBase()}/purchases/`, {
         method: "POST",
         body: JSON.stringify(formData),
       });
@@ -128,7 +127,7 @@ export default function PurchasesPage() {
           })),
       };
 
-      await apiFetch(`${BASE}/purchases/${purchaseId}/`, {
+      await apiFetch(`${getApiBase()}/purchases/${purchaseId}/`, {
         method: "PATCH",
         body: JSON.stringify(body),
       });
@@ -149,7 +148,7 @@ export default function PurchasesPage() {
     amount: string,
     date: string
   ) => {
-    await apiFetch(`${BASE}/purchase-payments/`, {
+    await apiFetch(`${getApiBase()}/purchase-payments/`, {
       method: "POST",
       body: JSON.stringify({ purchase: purchaseId, amount, date }),
     });

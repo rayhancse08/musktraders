@@ -1,8 +1,7 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
+import { getApiBase } from "@/lib/api-config";
 import { ReturnProduct, DamageProduct, ReturnProductFormData, DamageProductFormData } from "@/types/returnDamage";
-
-const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
 // ── Query keys ─────────────────────────────────────────────────────────────
 export const returnDamageKeys = {
@@ -18,7 +17,7 @@ export function useReturnProducts(params: Record<string, string> = {}) {
     queryKey: returnDamageKeys.returns(params),
     queryFn: async () => {
       const p = new URLSearchParams(params);
-      const data = await apiFetch(`${BASE}/return-products/?${p}`);
+      const data = await apiFetch(`${getApiBase()}/return-products/?${p}`);
       return { results: data.results ?? data, count: data.count ?? data.length };
     },
     placeholderData: keepPreviousData,
@@ -32,7 +31,7 @@ export function useDamageProducts(params: Record<string, string> = {}) {
     queryKey: returnDamageKeys.damages(params),
     queryFn: async () => {
       const p = new URLSearchParams(params);
-      const data = await apiFetch(`${BASE}/damage-products/?${p}`);
+      const data = await apiFetch(`${getApiBase()}/damage-products/?${p}`);
       return { results: data.results ?? data, count: data.count ?? data.length };
     },
     placeholderData: keepPreviousData,
@@ -45,7 +44,7 @@ export function useCreateReturn() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: ReturnProductFormData) =>
-      apiFetch(`${BASE}/return-products/`, {
+      apiFetch(`${getApiBase()}/return-products/`, {
         method: "POST",
         body: JSON.stringify({
           product:    data.product,
@@ -63,7 +62,7 @@ export function useUpdateReturn() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: ReturnProductFormData }) =>
-      apiFetch(`${BASE}/return-products/${id}/`, {
+      apiFetch(`${getApiBase()}/return-products/${id}/`, {
         method: "PATCH",
         body: JSON.stringify({
           product:    data.product,
@@ -81,7 +80,7 @@ export function useDeleteReturn() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      apiFetch(`${BASE}/return-products/${id}/`, { method: "DELETE" }),
+      apiFetch(`${getApiBase()}/return-products/${id}/`, { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["return-products"] }),
   });
 }
@@ -91,7 +90,7 @@ export function useCreateDamage() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: DamageProductFormData) =>
-      apiFetch(`${BASE}/damage-products/`, {
+      apiFetch(`${getApiBase()}/damage-products/`, {
         method: "POST",
         body: JSON.stringify({
           product:  data.product,
@@ -108,7 +107,7 @@ export function useUpdateDamage() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: DamageProductFormData }) =>
-      apiFetch(`${BASE}/damage-products/${id}/`, {
+      apiFetch(`${getApiBase()}/damage-products/${id}/`, {
         method: "PATCH",
         body: JSON.stringify({
           product:  data.product,
@@ -125,7 +124,7 @@ export function useDeleteDamage() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      apiFetch(`${BASE}/damage-products/${id}/`, { method: "DELETE" }),
+      apiFetch(`${getApiBase()}/damage-products/${id}/`, { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["damage-products"] }),
   });
 }

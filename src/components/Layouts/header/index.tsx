@@ -3,6 +3,7 @@
 import { SearchIcon } from "@/assets/icons";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { useSidebarContext } from "../sidebar/sidebar-context";
 import { MenuIcon } from "./icons";
@@ -10,26 +11,51 @@ import { Notification } from "./notification";
 import { ThemeToggleSwitch } from "./theme-toggle";
 import { UserInfo } from "./user-info";
 
+const PAGE_TITLES: Record<string, string> = {
+  "/": "Dashboard",
+  "/products": "Products",
+  "/sales": "Sales",
+  "/purchases": "Purchases",
+  "/warehouse": "Warehouse",
+  "/stores": "Stores",
+  "/brands": "Brands",
+  "/vendors": "Vendors",
+  "/tax": "Tax",
+  "/cashin": "Cash In",
+  "/warehouse-cost": "Warehouse Costs",
+  "/plans": "Plans",
+  "/report": "Reports",
+  "/return-damaged-products": "Returns & Damage",
+  "/profile": "Profile",
+  "/calendar": "Calendar",
+};
+
+function getPageTitle(pathname: string | null) {
+  if (!pathname) return "Dashboard";
+  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
+  const base = "/" + pathname.split("/").filter(Boolean)[0];
+  return PAGE_TITLES[base] ?? "Dashboard";
+}
+
 export function Header() {
   const { toggleSidebar, isMobile } = useSidebarContext();
+  const pathname = usePathname();
+  const pageTitle = getPageTitle(pathname);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/50 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(248,250,252,0.78))] px-4 py-4 shadow-[0_10px_35px_rgba(15,23,42,0.06)] backdrop-blur-2xl md:px-5 2xl:px-10">
-      <div className="flex items-center justify-between gap-3 rounded-[28px] border border-white/60 bg-white/70 px-3 py-3 shadow-[0_12px_32px_rgba(15,23,42,0.06)] backdrop-blur-xl md:px-4">
+    <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 px-4 py-3 backdrop-blur-xl md:px-6 lg:px-8">
+      <div className="flex items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <button
             onClick={toggleSidebar}
-            className="inline-flex size-11 items-center justify-center rounded-2xl border border-slate-200/80 bg-white/90 text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 lg:hidden"
+            className="inline-flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 lg:hidden"
           >
             <MenuIcon />
             <span className="sr-only">Toggle Sidebar</span>
           </button>
 
           {isMobile && (
-            <Link
-              href="/"
-              className="flex shrink-0 items-center rounded-2xl border border-white/70 bg-white/80 p-2 shadow-sm min-[375px]:ml-1 max-[430px]:hidden"
-            >
+            <Link href="/" className="flex shrink-0 items-center lg:hidden">
               <Image
                 src="/images/logo/logo-icon.svg"
                 width={32}
@@ -40,42 +66,32 @@ export function Header() {
             </Link>
           )}
 
-          <div className="hidden min-w-0 xl:block">
-            <h1 className="truncate text-xl font-semibold tracking-tight text-slate-900">
-              Dashboard
+          <div className="min-w-0">
+            <h1 className="truncate text-lg font-semibold tracking-tight text-slate-900 md:text-xl">
+              {pageTitle}
             </h1>
-            <p className="truncate text-sm text-slate-500">
-              Kdelight Admin Dashboard Solution
+            <p className="hidden truncate text-sm text-slate-500 sm:block">
+              Nextera Inventory Solution
             </p>
           </div>
         </div>
 
-        <div className="flex flex-1 items-center justify-end gap-2 min-[375px]:gap-3">
-          <div className="relative hidden w-full max-w-[360px] sm:block">
-            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-              <SearchIcon className="size-5" />
-            </span>
-
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="relative hidden w-full max-w-xs md:block lg:max-w-sm">
+            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
               type="search"
-              placeholder="Search anything..."
-              className="h-12 w-full rounded-2xl border border-slate-200/80 bg-white/80 py-3 pl-11 pr-4 text-sm text-slate-700 outline-none shadow-sm transition-all duration-200 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              placeholder="Search..."
+              className="input-modern h-10 pl-10"
             />
           </div>
 
-          <div className="flex items-center gap-2 rounded-2xl border border-white/60 bg-white/75 p-1.5 shadow-sm backdrop-blur-md">
-            <div className="rounded-xl transition-all hover:bg-sky-50">
-              <ThemeToggleSwitch />
-            </div>
-
-            <div className="rounded-xl transition-all hover:bg-sky-50">
-              <Notification />
-            </div>
+          <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
+            <ThemeToggleSwitch />
+            <Notification />
           </div>
 
-          <div className="shrink-0 rounded-2xl border border-white/60 bg-white/80 p-1 shadow-sm backdrop-blur-md">
-            <UserInfo />
-          </div>
+          <UserInfo />
         </div>
       </div>
     </header>

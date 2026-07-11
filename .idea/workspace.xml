@@ -5,10 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3dc41c91-c752-4fdf-8cf9-ac2a71f3046b" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.env.example" beforeDir="false" afterPath="$PROJECT_DIR$/.env.example" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/api-config.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/api-config.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib/apiFetch.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/apiFetch.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -111,6 +108,8 @@
       <workItem from="1776269763012" duration="5399000" />
       <workItem from="1776527181948" duration="4997000" />
       <workItem from="1781706900935" duration="3610000" />
+      <workItem from="1781812962980" duration="28000" />
+      <workItem from="1782125715767" duration="1195000" />
     </task>
     <servers />
   </component>

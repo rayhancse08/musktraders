@@ -5,7 +5,7 @@ import {
   ProductFormData, ProductCategoryFormData,
 } from "@/types/product";
 
-const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
+import { apiPath } from "@/lib/api-config";
 
 export const productKeys = {
   all:           ()                         => ["products"]                       as const,
@@ -21,7 +21,7 @@ export function useProducts(params: Record<string, string> = {}) {
     queryKey: productKeys.list(params),
     queryFn: async () => {
       const p = new URLSearchParams(params);
-      const data = await apiFetch(`${BASE}/products/?${p}`);
+      const data = await apiFetch(`${apiPath("products")}?${p}`);
       return { results: data.results ?? data, count: data.count ?? data.length };
     },
     placeholderData: keepPreviousData,
@@ -33,7 +33,7 @@ export function useProducts(params: Record<string, string> = {}) {
 export function useProductDetail(id: number | null) {
   return useQuery<ProductDetail>({
     queryKey: productKeys.detail(id!),
-    queryFn: () => apiFetch(`${BASE}/products/${id}/`),
+    queryFn: () => apiFetch(apiPath(`products/${id}`)),
     enabled: id !== null,
     staleTime: 20_000,
   });
@@ -50,7 +50,7 @@ export function useCreateProduct() {
         if (k === "image" && v instanceof File) fd.append(k, v);
         else fd.append(k, String(v));
       });
-      return apiFetch(`${BASE}/products/`, { method: "POST", body: fd });
+      return apiFetch(apiPath("products"), { method: "POST", body: fd });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all() }),
   });
@@ -67,7 +67,7 @@ export function useUpdateProduct() {
         if (k === "image" && v instanceof File) fd.append(k, v);
         else fd.append(k, String(v));
       });
-      return apiFetch(`${BASE}/products/${id}/`, { method: "PATCH", body: fd });
+      return apiFetch(apiPath(`products/${id}`), { method: "PATCH", body: fd });
     },
     onSuccess: (_, { id }) => {
       qc.invalidateQueries({ queryKey: productKeys.all() });
@@ -81,7 +81,7 @@ export function useDeleteProduct() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      apiFetch(`${BASE}/products/${id}/`, { method: "DELETE" }),
+      apiFetch(apiPath(`products/${id}`), { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all() }),
   });
 }
@@ -91,7 +91,7 @@ export function useRecalculateProduct() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      apiFetch(`${BASE}/products/${id}/recalculate/`, { method: "POST" }),
+      apiFetch(apiPath(`products/${id}/recalculate`), { method: "POST" }),
     onSuccess: (_, id) => {
       qc.invalidateQueries({ queryKey: productKeys.all() });
       qc.invalidateQueries({ queryKey: productKeys.detail(id) });
@@ -105,7 +105,7 @@ export function useProductCategories(params: Record<string, string> = {}) {
     queryKey: productKeys.categories(params),
     queryFn: async () => {
       const p = new URLSearchParams(params);
-      const data = await apiFetch(`${BASE}/product-categories/?${p}`);
+      const data = await apiFetch(`${apiPath("product-categories")}?${p}`);
       return data.results ?? data;
     },
     staleTime: 60_000,
@@ -121,7 +121,7 @@ export function useCreateCategory() {
       fd.append("name", form.name);
       fd.append("is_featured", String(form.is_featured));
       if (form.image) fd.append("image", form.image);
-      return apiFetch(`${BASE}/product-categories/`, { method: "POST", body: fd });
+      return apiFetch(apiPath("product-categories"), { method: "POST", body: fd });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["product-categories"] }),
   });
@@ -136,7 +136,7 @@ export function useUpdateCategory() {
       if (form.name !== undefined) fd.append("name", form.name);
       if (form.is_featured !== undefined) fd.append("is_featured", String(form.is_featured));
       if (form.image instanceof File) fd.append("image", form.image);
-      return apiFetch(`${BASE}/product-categories/${id}/`, { method: "PATCH", body: fd });
+      return apiFetch(apiPath(`product-categories/${id}`), { method: "PATCH", body: fd });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["product-categories"] }),
   });
@@ -147,7 +147,7 @@ export function useDeleteCategory() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      apiFetch(`${BASE}/product-categories/${id}/`, { method: "DELETE" }),
+      apiFetch(apiPath(`product-categories/${id}`), { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["product-categories"] }),
   });
 }

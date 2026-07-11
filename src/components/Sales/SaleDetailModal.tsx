@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { apiFetch } from "@/lib/apiFetch";
+import { getApiBase } from "@/lib/api-config";
 import {
   BillingOption,
   ProductOption,
@@ -10,8 +11,6 @@ import {
   SaleStatus,
   StoreOption,
 } from "@/types/sale";
-
-const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
 const STATUS_OPTS: SaleStatus[] = [
   "confirmed",
@@ -89,8 +88,8 @@ export default function SaleDetailModal({
     const loadMeta = async () => {
       try {
         const [storesRes, billingRes] = await Promise.all([
-          apiFetch(`${BASE}/stores/autocomplete/`),
-          apiFetch(`${BASE}/billing-companies/`),
+          apiFetch(`${getApiBase()}/stores/autocomplete/`),
+          apiFetch(`${getApiBase()}/billing-companies/`),
         ]);
         setStores(storesRes.results ?? storesRes);
         setBilling(billingRes.results ?? billingRes);
@@ -193,7 +192,7 @@ export default function SaleDetailModal({
 
       try {
         const res = await apiFetch(
-          `${BASE}/products/autocomplete/?q=${encodeURIComponent(q)}`
+          `${getApiBase()}/products/autocomplete/?q=${encodeURIComponent(q)}`
         );
 
         const items: ProductOption[] = res?.results ?? res ?? [];

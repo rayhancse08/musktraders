@@ -19,8 +19,8 @@ import {
   useCreateDamage, useUpdateDamage, useDeleteDamage,
 } from "@/hooks/useReturnDamagedProduct";
 import { apiFetch } from "@/lib/apiFetch";
+import { getApiBase } from "@/lib/api-config";
 
-const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 const fmt = (v: string | null | undefined) =>
   v ? "৳" + parseFloat(v).toLocaleString("en-BD", { minimumFractionDigits: 2 }) : "৳0.00";
 
@@ -43,7 +43,7 @@ function ProductAutocomplete({
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(async () => {
       if (!q) return setOptions([]);
-      const res = await apiFetch(`${BASE}/products/autocomplete/?q=${encodeURIComponent(q)}`);
+      const res = await apiFetch(`${getApiBase()}/products/autocomplete/?q=${encodeURIComponent(q)}`);
       setOptions(res);
     }, 300);
   };

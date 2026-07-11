@@ -18,7 +18,12 @@ const config: Config = {
         current: "currentColor",
         transparent: "transparent",
         white: "#FFFFFF",
-        primary: "#5750F1",
+        primary: "#4F46E5",
+        surface: {
+          DEFAULT: "#F8FAFC",
+          muted: "#F1F5F9",
+          card: "#FFFFFF",
+        },
         stroke: "#E6EBF1",
         "stroke-dark": "#27303E",
         dark: {
@@ -279,9 +284,13 @@ const config: Config = {
         12: "12px",
       },
       boxShadow: {
+        soft: "0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.04)",
+        card: "0 4px 24px -4px rgba(15, 23, 42, 0.08), 0 2px 8px -2px rgba(15, 23, 42, 0.04)",
+        elevated: "0 12px 40px -8px rgba(15, 23, 42, 0.12), 0 4px 16px -4px rgba(15, 23, 42, 0.06)",
+        sidebar: "4px 0 24px -4px rgba(15, 23, 42, 0.08)",
         default: "0px 4px 7px 0px rgba(0, 0, 0, 0.14)",
         error: "0px 12px 34px 0px rgba(13, 10, 44, 0.05)",
-        card: "0px 1px 2px 0px rgba(0, 0, 0, 0.12)",
+        "card-legacy": "0px 1px 2px 0px rgba(0, 0, 0, 0.12)",
         "card-2": "0px 8px 13px -3px rgba(0, 0, 0, 0.07)",
         "card-3": "0px 2px 3px 0px rgba(183, 183, 183, 0.50)",
         "card-4": "0px 1px 3px 0px rgba(0, 0, 0, 0.12)",

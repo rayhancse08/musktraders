@@ -2,9 +2,8 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { apiFetch } from "@/lib/apiFetch";
+import { getApiBase } from "@/lib/api-config";
 import { PurchaseDetail } from "@/types/purchase";
-
-const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
 const fmt = (v: string | number | null | undefined) =>
   v !== null && v !== undefined && v !== ""
@@ -229,7 +228,7 @@ export default function PurchaseDetailModal({
 
       try {
         const res = await apiFetch(
-          `${BASE}/products/autocomplete/?q=${encodeURIComponent(q)}`
+          `${getApiBase()}/products/autocomplete/?q=${encodeURIComponent(q)}`
         );
         const items: ProductOption[] = res?.results ?? res ?? [];
 

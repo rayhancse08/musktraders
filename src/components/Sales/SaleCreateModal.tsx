@@ -1,12 +1,11 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
 import { apiFetch } from "@/lib/apiFetch";
+import { getApiBase } from "@/lib/api-config";
 import {
   SaleFormData, SaleItemFormData, ProductOption,
   StoreOption, BillingOption,
 } from "@/types/sale";
-
-const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
 type Props = {
   formData: SaleFormData;
@@ -38,12 +37,12 @@ export default function SaleCreateModal({
     const loadData = async () => {
       try {
         const storesRes = await apiFetch(
-          `${BASE}/stores/autocomplete/?page=${storePage}`
+          `${getApiBase()}/stores/autocomplete/?page=${storePage}`
         );
         setStores(storesRes.results ?? storesRes);
 
         const billingRes = await apiFetch(
-          `${BASE}/billing-companies/?page=${billingPage}`
+          `${getApiBase()}/billing-companies/?page=${billingPage}`
         );
         setBilling(billingRes.results ?? billingRes);
 
@@ -113,7 +112,7 @@ export default function SaleCreateModal({
     timerRefs.current[i] = setTimeout(async () => {
       if (!q) return;
       const res: ProductOption[] = await apiFetch(
-        `${BASE}/products/autocomplete/?q=${encodeURIComponent(q)}`
+        `${getApiBase()}/products/autocomplete/?q=${encodeURIComponent(q)}`
       );
       setOptions((p) => { const a = [...p]; a[i] = res; return a; });
     }, 300);

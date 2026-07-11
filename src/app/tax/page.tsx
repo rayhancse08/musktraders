@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { apiFetch } from "@/lib/apiFetch";
+import { getApiBase } from "@/lib/api-config";
 import {
   TaxCategory, TaxCompany,
   MonthlyTaxFile, MonthlyTaxFileDetail,
@@ -10,7 +11,6 @@ import {
   MONTHS,
 } from "@/types/tax";
 
-const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 const d4 = (v: string | number) =>
   String(parseFloat(String(v || 0)).toFixed(4));
 const fmt = (v: string | null | undefined) =>
@@ -108,7 +108,7 @@ export default function TaxPage() {
   const loadCategories = useCallback(async () => {
     const params = new URLSearchParams();
     if (catSearch) params.set("search", catSearch);
-    const data = await apiFetch(`${BASE}/tax/categories/?${params}`);
+    const data = await apiFetch(`${getApiBase()}/tax/categories/?${params}`);
     setCategories(data.results ?? data);
   }, [catSearch]);
 
@@ -119,9 +119,9 @@ export default function TaxPage() {
     setCatModal((p) => ({ ...p, saving: true, error: null }));
     try {
       if (catModal.id) {
-        await apiFetch(`${BASE}/tax/categories/${catModal.id}/`, { method: "PATCH", body: JSON.stringify({ name: catModal.value }) });
+        await apiFetch(`${getApiBase()}/tax/categories/${catModal.id}/`, { method: "PATCH", body: JSON.stringify({ name: catModal.value }) });
       } else {
-        await apiFetch(`${BASE}/tax/categories/`, { method: "POST", body: JSON.stringify({ name: catModal.value }) });
+        await apiFetch(`${getApiBase()}/tax/categories/`, { method: "POST", body: JSON.stringify({ name: catModal.value }) });
       }
       setCatModal({ open: false, value: "", error: null, saving: false });
       loadCategories();
@@ -129,7 +129,7 @@ export default function TaxPage() {
   };
 
   const deleteCat = async (id: number) => {
-    await apiFetch(`${BASE}/tax/categories/${id}/`, { method: "DELETE" });
+    await apiFetch(`${getApiBase()}/tax/categories/${id}/`, { method: "DELETE" });
     setCatDeleteId(null); loadCategories();
   };
 
@@ -142,7 +142,7 @@ export default function TaxPage() {
   const loadCompanies = useCallback(async () => {
     const params = new URLSearchParams();
     if (compSearch) params.set("search", compSearch);
-    const data = await apiFetch(`${BASE}/tax/companies/?${params}`);
+    const data = await apiFetch(`${getApiBase()}/tax/companies/?${params}`);
     setCompanies(data.results ?? data);
   }, [compSearch]);
 
@@ -153,9 +153,9 @@ export default function TaxPage() {
     setCompModal((p) => ({ ...p, saving: true, error: null }));
     try {
       if (compModal.id) {
-        await apiFetch(`${BASE}/tax/companies/${compModal.id}/`, { method: "PATCH", body: JSON.stringify({ name: compModal.value }) });
+        await apiFetch(`${getApiBase()}/tax/companies/${compModal.id}/`, { method: "PATCH", body: JSON.stringify({ name: compModal.value }) });
       } else {
-        await apiFetch(`${BASE}/tax/companies/`, { method: "POST", body: JSON.stringify({ name: compModal.value }) });
+        await apiFetch(`${getApiBase()}/tax/companies/`, { method: "POST", body: JSON.stringify({ name: compModal.value }) });
       }
       setCompModal({ open: false, value: "", error: null, saving: false });
       loadCompanies();
@@ -163,7 +163,7 @@ export default function TaxPage() {
   };
 
   const deleteComp = async (id: number) => {
-    await apiFetch(`${BASE}/tax/companies/${id}/`, { method: "DELETE" });
+    await apiFetch(`${getApiBase()}/tax/companies/${id}/`, { method: "DELETE" });
     setCompDeleteId(null); loadCompanies();
   };
 
@@ -183,6 +183,10 @@ export default function TaxPage() {
   const [fileSaving, setFileSaving] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   const [fileDeleteId, setFileDeleteId] = useState<number | null>(null);
+  const [showNewCompany, setShowNewCompany] = useState(false);
+  const [newCompanyName, setNewCompanyName] = useState("");
+  const [newCompanySaving, setNewCompanySaving] = useState(false);
+  const [newCompanyError, setNewCompanyError] = useState<string | null>(null);
 
   // file detail / items
   const [detailOpen, setDetailOpen] = useState(false);
@@ -202,7 +206,7 @@ export default function TaxPage() {
     const params = new URLSearchParams();
     if (filesYear) params.set("year", filesYear);
     try {
-      const data = await apiFetch(`${BASE}/tax/monthly-files/?${params}`);
+      const data = await apiFetch(`${getApiBase()}/tax/monthly-files/?${params}`);
       setFiles(data.results ?? data);
       setFilesTotal(data.count ?? data.length);
     } catch (e) { console.error(e); }
@@ -215,7 +219,7 @@ export default function TaxPage() {
     setDetailLoading(true);
     setDetailOpen(true);
     try {
-      const data = await apiFetch(`${BASE}/tax/monthly-files/${id}/`);
+      const data = await apiFetch(`${getApiBase()}/tax/monthly-files/${id}/`);
       setDetailFile(data);
     } catch (e) { console.error(e); }
     finally { setDetailLoading(false); }
@@ -224,7 +228,7 @@ export default function TaxPage() {
   const createFile = async () => {
     setFileSaving(true); setFileError(null);
     try {
-      await apiFetch(`${BASE}/tax/monthly-files/`, {
+      await apiFetch(`${getApiBase()}/tax/monthly-files/`, {
         method: "POST",
         body: JSON.stringify({
           year: parseInt(fileForm.year),
@@ -232,13 +236,40 @@ export default function TaxPage() {
           company_name: fileForm.company_name || null,
         }),
       });
-      setFileModal(false); loadFiles();
+      setFileModal(false);
+      setShowNewCompany(false);
+      setNewCompanyName("");
+      setNewCompanyError(null);
+      loadFiles();
     } catch (e: any) { setFileError(e.message ?? "Failed"); }
     finally { setFileSaving(false); }
   };
 
+  const createCompanyInline = async () => {
+    if (!newCompanyName.trim()) {
+      setNewCompanyError("Company name is required.");
+      return;
+    }
+    setNewCompanySaving(true);
+    setNewCompanyError(null);
+    try {
+      const created = await apiFetch(`${getApiBase()}/tax/companies/`, {
+        method: "POST",
+        body: JSON.stringify({ name: newCompanyName.trim() }),
+      });
+      await loadCompanies();
+      setFileForm((p) => ({ ...p, company_name: String(created.id) }));
+      setShowNewCompany(false);
+      setNewCompanyName("");
+    } catch (e: any) {
+      setNewCompanyError(e.message ?? "Failed to create company");
+    } finally {
+      setNewCompanySaving(false);
+    }
+  };
+
   const deleteFile = async (id: number) => {
-    await apiFetch(`${BASE}/tax/monthly-files/${id}/`, { method: "DELETE" });
+    await apiFetch(`${getApiBase()}/tax/monthly-files/${id}/`, { method: "DELETE" });
     setFileDeleteId(null); loadFiles();
   };
 
@@ -274,9 +305,9 @@ export default function TaxPage() {
     };
     try {
       if (itemEditId) {
-        await apiFetch(`${BASE}/tax/items/${itemEditId}/`, { method: "PATCH", body: JSON.stringify(payload) });
+        await apiFetch(`${getApiBase()}/tax/items/${itemEditId}/`, { method: "PATCH", body: JSON.stringify(payload) });
       } else {
-        await apiFetch(`${BASE}/tax/items/`, { method: "POST", body: JSON.stringify(payload) });
+        await apiFetch(`${getApiBase()}/tax/items/`, { method: "POST", body: JSON.stringify(payload) });
       }
       setItemModal(false);
       loadDetail(detailFile.id);
@@ -286,7 +317,7 @@ export default function TaxPage() {
 
   const deleteItem = async (id: number) => {
     if (!detailFile) return;
-    await apiFetch(`${BASE}/tax/items/${id}/`, { method: "DELETE" });
+    await apiFetch(`${getApiBase()}/tax/items/${id}/`, { method: "DELETE" });
     setItemDeleteId(null);
     loadDetail(detailFile.id);
   };
@@ -335,7 +366,14 @@ export default function TaxPage() {
               </span>
             </div>
             <button
-              onClick={() => { setFileForm({ year: String(currentYear), month: String(new Date().getMonth() + 1), company_name: "" }); setFileError(null); setFileModal(true); }}
+              onClick={() => {
+                setFileForm({ year: String(currentYear), month: String(new Date().getMonth() + 1), company_name: "" });
+                setFileError(null);
+                setShowNewCompany(false);
+                setNewCompanyName("");
+                setNewCompanyError(null);
+                setFileModal(true);
+              }}
               className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2"
             >
               <span className="text-lg leading-none">+</span> New Tax File
@@ -602,11 +640,68 @@ export default function TaxPage() {
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Company</label>
-                <select className="border border-gray-200 rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:border-blue-400" value={fileForm.company_name} onChange={(e) => setFileForm((p) => ({ ...p, company_name: e.target.value }))}>
-                  <option value="">No company</option>
-                  {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Company</label>
+                  {!showNewCompany && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowNewCompany(true);
+                        setNewCompanyError(null);
+                      }}
+                      className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                    >
+                      + New Company
+                    </button>
+                  )}
+                </div>
+                {!showNewCompany ? (
+                  <select
+                    className="border border-gray-200 rounded-lg px-3 py-2 w-full text-sm focus:outline-none focus:border-blue-400"
+                    value={fileForm.company_name}
+                    onChange={(e) => setFileForm((p) => ({ ...p, company_name: e.target.value }))}
+                  >
+                    <option value="">No company</option>
+                    {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                ) : (
+                  <div className="space-y-2 rounded-lg border border-blue-100 bg-blue-50/50 p-3">
+                    {newCompanyError && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 text-xs px-3 py-2 rounded-lg">
+                        {newCompanyError}
+                      </div>
+                    )}
+                    <input
+                      autoFocus
+                      className="border border-gray-200 rounded-lg px-3 py-2 w-full text-sm bg-white focus:outline-none focus:border-blue-400"
+                      placeholder="Enter company name..."
+                      value={newCompanyName}
+                      onChange={(e) => setNewCompanyName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && createCompanyInline()}
+                    />
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowNewCompany(false);
+                          setNewCompanyName("");
+                          setNewCompanyError(null);
+                        }}
+                        className="px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-white"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={createCompanyInline}
+                        disabled={newCompanySaving}
+                        className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg font-medium disabled:opacity-60 hover:bg-blue-700"
+                      >
+                        {newCompanySaving ? "Saving..." : "Save Company"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <div className="px-7 pb-6 pt-4 border-t border-gray-100 flex justify-end gap-3">

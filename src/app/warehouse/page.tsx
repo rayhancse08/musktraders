@@ -11,13 +11,12 @@ import {
   TableLoader,
 } from "@/components/inventory/ui-primitives";
 import { apiFetch } from "@/lib/apiFetch";
+import { getApiBase } from "@/lib/api-config";
 import {
   WarehouseItem,
   WarehouseItemDetail,
   WarehouseItemFormData,
 } from "@/types/warehouse";
-
-const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
 const EMPTY_FORM: WarehouseItemFormData = {
   product: "",
@@ -95,7 +94,7 @@ export default function WarehousePage() {
     params.set("page", String(page));
     setLoading(true);
     try {
-      const data = await apiFetch(`${BASE}/warehouse/?${params}`);
+      const data = await apiFetch(`${getApiBase()}/warehouse/?${params}`);
       setItems(data.results ?? data);
       setTotal(data.count ?? data.length);
     } catch (e) { console.error(e); }
@@ -108,7 +107,7 @@ export default function WarehousePage() {
     setDetailLoading(true);
     setDetailOpen(true);
     try {
-      const data = await apiFetch(`${BASE}/warehouse/${id}/`);
+      const data = await apiFetch(`${getApiBase()}/warehouse/${id}/`);
       setDetailItem(data);
     } catch (e) { console.error(e); }
     finally { setDetailLoading(false); }
@@ -125,7 +124,7 @@ export default function WarehousePage() {
 
   const openEdit = async (id: number) => {
     try {
-      const data: WarehouseItemDetail = await apiFetch(`${BASE}/warehouse/${id}/`);
+      const data: WarehouseItemDetail = await apiFetch(`${getApiBase()}/warehouse/${id}/`);
       setEditTarget(data);
       setFormData({
         product:                   String(data.product),
@@ -165,12 +164,12 @@ export default function WarehousePage() {
     };
     try {
       if (editTarget) {
-        await apiFetch(`${BASE}/warehouse/${editTarget.id}/`, {
+        await apiFetch(`${getApiBase()}/warehouse/${editTarget.id}/`, {
           method: "PATCH",
           body: JSON.stringify(payload),
         });
       } else {
-        await apiFetch(`${BASE}/warehouse/`, {
+        await apiFetch(`${getApiBase()}/warehouse/`, {
           method: "POST",
           body: JSON.stringify(payload),
         });
@@ -184,7 +183,7 @@ export default function WarehousePage() {
 
   const handleDelete = async (id: number) => {
     try {
-      await apiFetch(`${BASE}/warehouse/${id}/`, { method: "DELETE" });
+      await apiFetch(`${getApiBase()}/warehouse/${id}/`, { method: "DELETE" });
       setDeleteId(null);
       loadItems();
     } catch (e) { console.error(e); }
@@ -201,7 +200,7 @@ export default function WarehousePage() {
     searchProductTimer.current = setTimeout(async () => {
       if (!q) return setProductOptions([]);
       const res = await apiFetch(
-        `${BASE}/products/autocomplete/?q=${encodeURIComponent(q)}`
+        `${getApiBase()}/products/autocomplete/?q=${encodeURIComponent(q)}`
       );
       setProductOptions(res);
     }, 300);

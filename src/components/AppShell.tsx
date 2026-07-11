@@ -22,27 +22,37 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
 
     if (user && isPublic) {
-      router.replace("/"); // ✅ use correct route
+      router.replace("/");
     }
   }, [user, loading, pathname, router]);
 
-  // ✅ prevent flicker / wrong UI render
   if (loading) {
-    return <div className="p-10 text-center">Loading...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-surface">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600" />
+          <p className="text-sm font-medium text-slate-500">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!user && !isPublic) return null;
   if (user && isPublic) return null;
 
+  if (isPublic) {
+    return <>{children}</>;
+  }
+
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-surface">
       {user && <Sidebar />}
 
-      <div className="w-full">
-        {user && <Header />} {/* ✅ moved here */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {user && <Header />}
 
-        <main className="isolate mx-auto w-full max-w-screen-2xl overflow-hidden p-4 md:p-6 2xl:p-10">
-          {children}
+        <main className="flex-1 overflow-x-hidden p-4 md:p-6 lg:p-8">
+          <div className="page-container">{children}</div>
         </main>
       </div>
     </div>

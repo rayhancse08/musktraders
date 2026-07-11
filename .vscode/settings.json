@@ -1,0 +1,11 @@
+{
+  "terminal.integrated.defaultProfile.windows": "WSL Ubuntu",
+  "terminal.integrated.profiles.windows": {
+    "WSL Ubuntu": {
+      "path": "C:\\Windows\\System32\\wsl.exe",
+      "args": ["-d", "Ubuntu-22.04", "--cd", "/home/rayhan/order-inventory-solution"]
+    }
+  },
+  "terminal.integrated.cwd": "/home/rayhan/order-inventory-solution",
+  "remote.WSL.fileWatcher.polling": true
+}

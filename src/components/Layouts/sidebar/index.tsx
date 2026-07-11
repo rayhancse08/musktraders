@@ -38,67 +38,58 @@ export function Sidebar() {
       {isMobile && isOpen && (
         <button
           aria-label="Close sidebar overlay"
-          className="fixed inset-0 z-40 bg-slate-950/55 backdrop-blur-md"
+          className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       <aside
         className={cn(
-          "overflow-hidden border-r border-white/40 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.95),_rgba(241,245,249,0.92)_40%,_rgba(226,232,240,0.9)_100%)] shadow-[0_20px_80px_rgba(15,23,42,0.14)] backdrop-blur-2xl transition-all duration-300",
+          "flex-shrink-0 overflow-hidden border-r border-slate-800/80 bg-slate-950 shadow-sidebar transition-all duration-300",
           isMobile
-            ? "fixed inset-y-0 left-0 z-50 max-w-[340px]"
-            : "sticky top-0 h-screen max-w-[310px]",
-          isOpen ? "w-full translate-x-0" : "w-0 -translate-x-3"
+            ? "fixed inset-y-0 left-0 z-50 w-[280px]"
+            : "sticky top-0 h-screen w-[260px]",
+          isOpen ? "translate-x-0" : isMobile ? "-translate-x-full" : "w-0 -translate-x-full border-r-0"
         )}
       >
-        <div className="relative flex h-full flex-col px-5 py-5">
-          <div className="pointer-events-none absolute inset-0 opacity-80">
-            <div className="absolute left-[-40px] top-[-30px] h-36 w-36 rounded-full bg-cyan-200/40 blur-3xl" />
-            <div className="absolute bottom-20 right-[-50px] h-44 w-44 rounded-full bg-blue-300/30 blur-3xl" />
-          </div>
-
-          <div className="relative rounded-[30px] border border-white/60 bg-white/70 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+        <div className="flex h-full flex-col">
+          <div className="border-b border-slate-800/80 px-5 py-5">
             <div className="flex items-center justify-between gap-3">
               <Link
                 href="/"
-                className="transition-transform duration-200 hover:scale-[1.02]"
+                className="transition-opacity hover:opacity-90"
                 onClick={() => isMobile && toggleSidebar()}
               >
-                <Logo />
+                <Logo variant="light" />
               </Link>
 
               {isMobile && (
                 <button
                   onClick={toggleSidebar}
-                  className="inline-flex size-10 items-center justify-center rounded-2xl border border-slate-200/80 bg-white/90 text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-slate-950"
+                  className="inline-flex size-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-white"
                 >
-                  <ArrowLeftIcon className="size-6" />
+                  <ArrowLeftIcon className="size-5" />
                 </button>
               )}
             </div>
           </div>
 
-          <div className="relative mt-6 flex-1 overflow-y-auto pr-1">
-            <div className="space-y-4">
+          <div className="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar">
+            <div className="space-y-6">
               {NAV_DATA.map((section) => (
-                <section
-                  key={section.label}
-                  className="rounded-[28px] border border-white/60 bg-white/65 p-3 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl"
-                >
-                  <div className="mb-3 px-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-slate-400">
-                      {section.label}
-                    </p>
-                  </div>
+                <section key={section.label}>
+                  <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                    {section.label}
+                  </p>
 
-                  <ul className="space-y-2">
+                  <ul className="space-y-1">
                     {section.items.map((item) => {
                       const hasChildren = Boolean(item.items?.length);
                       const isExpanded = expandedItems.includes(item.title);
                       const hasActiveChild = Boolean(
                         item.items?.some((subItem) => subItem.url === pathname)
                       );
+                      const isActive = pathname === item.url;
 
                       return (
                         <li key={item.title}>
@@ -108,44 +99,31 @@ export function Sidebar() {
                                 isActive={hasActiveChild}
                                 onClick={() => toggleExpanded(item.title)}
                                 className={cn(
-                                  "group rounded-[22px] border px-3.5 py-3 transition-all duration-200",
+                                  "group rounded-xl px-3 py-2.5 transition-all duration-200",
                                   hasActiveChild
-                                    ? "border-blue-500 bg-blue-500 text-white shadow-[0_16px_36px_rgba(59,130,246,0.28)]"
-                                    : "border-transparent bg-white/40 text-slate-600 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 hover:shadow-sm"
+                                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/25"
+                                    : "text-slate-400 hover:bg-slate-800/80 hover:text-slate-200"
                                 )}
                               >
-                                <item.icon className="size-5 shrink-0" />
-                                <span className="font-medium tracking-tight">
-                                  {item.title}
-                                </span>
-
-                                <span
+                                <item.icon className="size-[18px] shrink-0" />
+                                <span className="text-sm font-medium">{item.title}</span>
+                                <ChevronUp
                                   className={cn(
-                                    "ml-auto inline-flex size-8 items-center justify-center rounded-2xl transition-all",
-                                    hasActiveChild
-                                      ? "bg-white/15 text-white"
-                                      : "bg-slate-100/90 text-slate-500 group-hover:bg-sky-100 group-hover:text-sky-700"
+                                    "ml-auto size-4 rotate-180 text-slate-500 transition-transform duration-200",
+                                    isExpanded && "rotate-0",
+                                    hasActiveChild && "text-indigo-200"
                                   )}
-                                >
-                                  <ChevronUp
-                                    className={cn(
-                                      "size-4 rotate-180 transition-transform duration-300",
-                                      isExpanded && "rotate-0"
-                                    )}
-                                  />
-                                </span>
+                                />
                               </MenuItem>
 
                               <div
                                 className={cn(
-                                  "grid transition-all duration-300 ease-out",
-                                  isExpanded
-                                    ? "grid-rows-[1fr] opacity-100"
-                                    : "grid-rows-[0fr] opacity-0"
+                                  "grid transition-all duration-200 ease-out",
+                                  isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                                 )}
                               >
                                 <div className="overflow-hidden">
-                                  <ul className="mt-2 space-y-1.5 rounded-[22px] border border-white/60 bg-white/55 p-2 backdrop-blur-md">
+                                  <ul className="mt-1 space-y-0.5 border-l border-slate-800 pl-3 ml-5">
                                     {item.items?.map((subItem) => (
                                       <li key={subItem.title}>
                                         <MenuItem
@@ -153,10 +131,10 @@ export function Sidebar() {
                                           href={subItem.url}
                                           isActive={pathname === subItem.url}
                                           className={cn(
-                                            "rounded-2xl px-3 py-2.5 text-sm transition-all duration-200",
+                                            "rounded-lg px-3 py-2 text-sm transition-all",
                                             pathname === subItem.url
-                                              ? "bg-blue-50 text-blue-600 shadow-[0_8px_18px_rgba(59,130,246,0.12)] ring-1 ring-blue-200"
-                                              : "text-slate-500 hover:bg-sky-50 hover:text-sky-700"
+                                              ? "bg-indigo-500/15 font-medium text-indigo-300"
+                                              : "text-slate-500 hover:bg-slate-800/60 hover:text-slate-300"
                                           )}
                                         >
                                           {subItem.title}
@@ -174,18 +152,16 @@ export function Sidebar() {
                                 item.url ??
                                 "/" + item.title.toLowerCase().replace(/\s+/g, "-")
                               }
-                              isActive={pathname === item.url}
+                              isActive={isActive}
                               className={cn(
-                                "rounded-[22px] border px-3.5 py-3 transition-all duration-200",
-                                pathname === item.url
-                                  ? "border-blue-500 bg-blue-500 text-white shadow-[0_16px_36px_rgba(59,130,246,0.28)]"
-                                  : "border-transparent bg-white/40 text-slate-600 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 hover:shadow-sm"
+                                "rounded-xl px-3 py-2.5 transition-all duration-200",
+                                isActive
+                                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/25"
+                                  : "text-slate-400 hover:bg-slate-800/80 hover:text-slate-200"
                               )}
                             >
-                              <item.icon className="size-5 shrink-0" />
-                              <span className="font-medium tracking-tight">
-                                {item.title}
-                              </span>
+                              <item.icon className="size-[18px] shrink-0" />
+                              <span className="text-sm font-medium">{item.title}</span>
                             </MenuItem>
                           )}
                         </li>
@@ -194,6 +170,13 @@ export function Sidebar() {
                   </ul>
                 </section>
               ))}
+            </div>
+          </div>
+
+          <div className="border-t border-slate-800/80 p-4">
+            <div className="rounded-xl bg-slate-900/80 px-3 py-3">
+              <p className="text-xs font-medium text-slate-300">Nextera Inventory</p>
+              <p className="mt-0.5 text-[11px] text-slate-500">Order & warehouse management</p>
             </div>
           </div>
         </div>

@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
+import { getApiBase } from "@/lib/api-config";
 import {
   MonthlyPlan, YearlyPlan,
   MonthlyPlanFormData, YearlyPlanFormData,
 } from "@/types/plan";
 
-const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 const d4 = (v: string) => v ? String(parseFloat(v).toFixed(4)) : null;
 
 export const planKeys = {
@@ -19,7 +19,7 @@ export function useMonthlyPlans(year: string) {
   return useQuery<MonthlyPlan[]>({
     queryKey: planKeys.monthly(year),
     queryFn: async () => {
-      const data = await apiFetch(`${BASE}/plans/monthly/?year=${year}`);
+      const data = await apiFetch(`${getApiBase()}/plans/monthly/?year=${year}`);
       return data.results ?? data;
     },
     staleTime: 20_000,
@@ -31,7 +31,7 @@ export function useYearlyPlans() {
   return useQuery<YearlyPlan[]>({
     queryKey: planKeys.yearly(),
     queryFn: async () => {
-      const data = await apiFetch(`${BASE}/plans/yearly/`);
+      const data = await apiFetch(`${getApiBase()}/plans/yearly/`);
       return data.results ?? data;
     },
     staleTime: 20_000,
@@ -43,7 +43,7 @@ export function useCreateMonthlyPlan() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (form: MonthlyPlanFormData) =>
-      apiFetch(`${BASE}/plans/monthly/`, {
+      apiFetch(`${getApiBase()}/plans/monthly/`, {
         method: "POST",
         body: JSON.stringify({
           year:         parseInt(form.year),
@@ -61,7 +61,7 @@ export function useUpdateMonthlyPlan() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, form }: { id: number; form: MonthlyPlanFormData }) =>
-      apiFetch(`${BASE}/plans/monthly/${id}/`, {
+      apiFetch(`${getApiBase()}/plans/monthly/${id}/`, {
         method: "PATCH",
         body: JSON.stringify({
           sales_target: d4(form.sales_target),
@@ -77,7 +77,7 @@ export function useRecalculateMonthlyPlan() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      apiFetch(`${BASE}/plans/monthly/${id}/recalculate/`, { method: "POST" }),
+      apiFetch(`${getApiBase()}/plans/monthly/${id}/recalculate/`, { method: "POST" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["plans", "monthly"] }),
   });
 }
@@ -87,7 +87,7 @@ export function useDeleteMonthlyPlan() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      apiFetch(`${BASE}/plans/monthly/${id}/`, { method: "DELETE" }),
+      apiFetch(`${getApiBase()}/plans/monthly/${id}/`, { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["plans", "monthly"] }),
   });
 }
@@ -97,7 +97,7 @@ export function useCreateYearlyPlan() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (form: YearlyPlanFormData) =>
-      apiFetch(`${BASE}/plans/yearly/`, {
+      apiFetch(`${getApiBase()}/plans/yearly/`, {
         method: "POST",
         body: JSON.stringify({
           year:         parseInt(form.year),
@@ -114,7 +114,7 @@ export function useUpdateYearlyPlan() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, form }: { id: number; form: YearlyPlanFormData }) =>
-      apiFetch(`${BASE}/plans/yearly/${id}/`, {
+      apiFetch(`${getApiBase()}/plans/yearly/${id}/`, {
         method: "PATCH",
         body: JSON.stringify({
           sales_target: d4(form.sales_target),
@@ -130,7 +130,7 @@ export function useRecalculateYearlyPlan() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      apiFetch(`${BASE}/plans/yearly/${id}/recalculate/`, { method: "POST" }),
+      apiFetch(`${getApiBase()}/plans/yearly/${id}/recalculate/`, { method: "POST" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: planKeys.yearly() }),
   });
 }
@@ -140,7 +140,7 @@ export function useDeleteYearlyPlan() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      apiFetch(`${BASE}/plans/yearly/${id}/`, { method: "DELETE" }),
+      apiFetch(`${getApiBase()}/plans/yearly/${id}/`, { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: planKeys.yearly() }),
   });
 }

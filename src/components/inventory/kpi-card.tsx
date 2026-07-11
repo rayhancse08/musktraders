@@ -4,52 +4,69 @@ import { ReactNode } from "react";
 type KpiCardProps = {
   label: string;
   value: string | number;
-  sub?: string;
+  sub?: ReactNode;
   accent?: "primary" | "green" | "blue" | "red" | "amber" | "indigo";
   icon?: ReactNode;
   className?: string;
 };
 
-const accentMap = {
-  primary: "from-primary/20 to-primary/5 border-primary/20 text-primary",
-  green: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/20 text-emerald-600",
-  blue: "from-blue-500/20 to-blue-500/5 border-blue-500/20 text-blue-600",
-  red: "from-red-500/20 to-red-500/5 border-red-500/20 text-red-600",
-  amber: "from-amber-500/20 to-amber-500/5 border-amber-500/20 text-amber-600",
-  indigo: "from-indigo-500/20 to-indigo-500/5 border-indigo-500/20 text-indigo-600",
-};
-
-const barMap = {
-  primary: "bg-primary",
-  green: "bg-emerald-500",
-  blue: "bg-blue-500",
-  red: "bg-red-500",
-  amber: "bg-amber-500",
-  indigo: "bg-indigo-500",
+const accentStyles = {
+  primary: {
+    card: "border-indigo-100",
+    value: "text-indigo-700",
+    bar: "bg-indigo-500",
+    icon: "bg-indigo-50 text-indigo-600",
+  },
+  green: {
+    card: "border-emerald-100",
+    value: "text-emerald-700",
+    bar: "bg-emerald-500",
+    icon: "bg-emerald-50 text-emerald-600",
+  },
+  blue: {
+    card: "border-blue-100",
+    value: "text-blue-700",
+    bar: "bg-blue-500",
+    icon: "bg-blue-50 text-blue-600",
+  },
+  red: {
+    card: "border-red-100",
+    value: "text-red-700",
+    bar: "bg-red-500",
+    icon: "bg-red-50 text-red-600",
+  },
+  amber: {
+    card: "border-amber-100",
+    value: "text-amber-700",
+    bar: "bg-amber-500",
+    icon: "bg-amber-50 text-amber-600",
+  },
+  indigo: {
+    card: "border-violet-100",
+    value: "text-violet-700",
+    bar: "bg-violet-500",
+    icon: "bg-violet-50 text-violet-600",
+  },
 };
 
 export function KpiCard({ label, value, sub, accent = "primary", icon, className }: KpiCardProps) {
+  const styles = accentStyles[accent];
+
   return (
-    <div
-      className={cn(
-        "relative overflow-hidden rounded-2xl border bg-gradient-to-br p-5 shadow-sm transition-shadow hover:shadow-md dark:bg-dark-2",
-        accentMap[accent],
-        className,
-      )}
-    >
-      <div className={cn("absolute top-0 left-0 right-0 h-1", barMap[accent])} />
+    <div className={cn("stat-card", styles.card, className)}>
+      <div className={cn("absolute left-0 right-0 top-0 h-1", styles.bar)} />
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400 mb-1.5">
+          <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-500">
             {label}
           </p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white tabular-nums">
+          <p className={cn("text-2xl font-bold tabular-nums", styles.value)}>
             {typeof value === "number" ? value.toLocaleString() : value}
           </p>
-          {sub && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{sub}</p>}
+          {sub && <div className="mt-1 text-xs text-slate-500">{sub}</div>}
         </div>
         {icon && (
-          <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center bg-white/60 dark:bg-dark-3/60", accentMap[accent])}>
+          <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", styles.icon)}>
             {icon}
           </div>
         )}

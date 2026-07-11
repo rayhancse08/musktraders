@@ -5,9 +5,8 @@ import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { Pagination } from "@/components/inventory/pagination";
 import { TableLoader } from "@/components/inventory/ui-primitives";
 import { apiFetch } from "@/lib/apiFetch";
+import { getApiBase } from "@/lib/api-config";
 import { Store, StoreFormData } from "@/types/store";
-
-const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
 const EMPTY_FORM: StoreFormData = {
   name: "",
@@ -40,7 +39,7 @@ export default function StorePage() {
     params.set("page", String(page));
     setLoading(true);
     try {
-      const data = await apiFetch(`${BASE}/stores/?${params}`);
+      const data = await apiFetch(`${getApiBase()}/stores/?${params}`);
       setStores(data.results ?? data);
       setTotal(data.count ?? data.length);
     } catch (e) {
@@ -80,12 +79,12 @@ export default function StorePage() {
     setError(null);
     try {
       if (editTarget) {
-        await apiFetch(`${BASE}/stores/${editTarget.id}/`, {
+        await apiFetch(`${getApiBase()}/stores/${editTarget.id}/`, {
           method: "PATCH",
           body: JSON.stringify(formData),
         });
       } else {
-        await apiFetch(`${BASE}/stores/`, {
+        await apiFetch(`${getApiBase()}/stores/`, {
           method: "POST",
           body: JSON.stringify(formData),
         });
@@ -101,7 +100,7 @@ export default function StorePage() {
 
   const handleDelete = async (id: number) => {
     try {
-      await apiFetch(`${BASE}/stores/${id}/`, { method: "DELETE" });
+      await apiFetch(`${getApiBase()}/stores/${id}/`, { method: "DELETE" });
       setDeleteId(null);
       loadStores();
     } catch (e) {

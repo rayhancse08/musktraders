@@ -3,12 +3,11 @@
 import React, { useEffect, useState, useCallback } from "react";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { apiFetch } from "@/lib/apiFetch";
+import { getApiBase } from "@/lib/api-config";
 import { Sale, SaleDetail, SaleFormData } from "@/types/sale";
 import SaleTable from "@/components/Sales/SaleTable";
 import SaleCreateModal from "@/components/Sales/SaleCreateModal";
 import SaleDetailModal from "@/components/Sales/SaleDetailModal";
-
-const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
 const EMPTY_FORM: SaleFormData = {
   date: new Date().toISOString().slice(0, 10),
@@ -48,7 +47,7 @@ export default function SalesPage() {
 
     setLoading(true);
     try {
-      const data = await apiFetch(`${BASE}/sales/?${params}`);
+      const data = await apiFetch(`${getApiBase()}/sales/?${params}`);
       setSales(data.results ?? data);
       setTotal(data.count ?? data.length);
     } catch (e) {
@@ -66,7 +65,7 @@ export default function SalesPage() {
     setDetailLoading(true);
     setDetailOpen(true);
     try {
-      const data = await apiFetch(`${BASE}/sales/${id}/`);
+      const data = await apiFetch(`${getApiBase()}/sales/${id}/`);
       setDetailSale(data);
     } catch (e) {
       console.error(e);
@@ -79,7 +78,7 @@ export default function SalesPage() {
     setSaving(true);
     setError(null);
     try {
-      await apiFetch(`${BASE}/sales/`, {
+      await apiFetch(`${getApiBase()}/sales/`, {
         method: "POST",
         body: JSON.stringify(formData),
       });
@@ -116,7 +115,7 @@ export default function SalesPage() {
         })),
       };
 
-      await apiFetch(`${BASE}/sales/${saleId}/`, {
+      await apiFetch(`${getApiBase()}/sales/${saleId}/`, {
         method: "PATCH",
         body: JSON.stringify(body),
       });
@@ -135,7 +134,7 @@ export default function SalesPage() {
 
   const handleStatusChange = async (id: number, status: string) => {
     try {
-      const updated = await apiFetch(`${BASE}/sales/${id}/status/`, {
+      const updated = await apiFetch(`${getApiBase()}/sales/${id}/status/`, {
         method: "PATCH",
         body: JSON.stringify({ status }),
       });
@@ -147,7 +146,7 @@ export default function SalesPage() {
   };
 
   const handleAddPayment = async (saleId: number, amount: string, date: string) => {
-    await apiFetch(`${BASE}/payments/`, {
+    await apiFetch(`${getApiBase()}/payments/`, {
       method: "POST",
       body: JSON.stringify({ sale: saleId, amount, date }),
     });

@@ -1,12 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
+import { getApiBase } from "@/lib/api-config";
 import {
   MonthlyWarehouseCost, MonthlyWarehouseCostDetail,
   WarehouseCostItem, CostTypeOption,
   WarehouseCostFormData, MonthlyFileFormData,
 } from "@/types/warehouse_cost";
-
-const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
 // ── Query keys ────────────────────────────────────────────────────────────────
 export const warehouseCostKeys = {
@@ -21,7 +20,7 @@ export const warehouseCostKeys = {
 export function useCostTypes() {
   return useQuery<CostTypeOption[]>({
     queryKey: warehouseCostKeys.costTypes(),
-    queryFn:  () => apiFetch(`${BASE}/warehouse-costs/monthly/cost-types/`),
+    queryFn:  () => apiFetch(`${getApiBase()}/warehouse-costs/monthly/cost-types/`),
     staleTime: Infinity,  // static list, never refetch
   });
 }
@@ -32,7 +31,7 @@ export function useMonthlyFiles(year: string) {
     queryKey: warehouseCostKeys.monthly(year),
     queryFn: async () => {
       const params = new URLSearchParams({ year });
-      const data = await apiFetch(`${BASE}/warehouse-costs/monthly/?${params}`);
+      const data = await apiFetch(`${getApiBase()}/warehouse-costs/monthly/?${params}`);
       return data.results ?? data;
     },
     staleTime: 30_000,
@@ -43,7 +42,7 @@ export function useMonthlyFiles(year: string) {
 export function useMonthlyFileDetail(id: number | null) {
   return useQuery<MonthlyWarehouseCostDetail>({
     queryKey: warehouseCostKeys.detail(id!),
-    queryFn: () => apiFetch(`${BASE}/warehouse-costs/monthly/${id}/`),
+    queryFn: () => apiFetch(`${getApiBase()}/warehouse-costs/monthly/${id}/`),
     enabled: id !== null,
     staleTime: 20_000,
   });
@@ -54,7 +53,7 @@ export function useCreateMonthlyFile() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: MonthlyFileFormData) =>
-      apiFetch(`${BASE}/warehouse-costs/monthly/`, {
+      apiFetch(`${getApiBase()}/warehouse-costs/monthly/`, {
         method: "POST",
         body: JSON.stringify({ year: parseInt(data.year), month: parseInt(data.month) }),
       }),
@@ -67,7 +66,7 @@ export function useDeleteMonthlyFile() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      apiFetch(`${BASE}/warehouse-costs/monthly/${id}/`, { method: "DELETE" }),
+      apiFetch(`${getApiBase()}/warehouse-costs/monthly/${id}/`, { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: warehouseCostKeys.all() }),
   });
 }
@@ -77,7 +76,7 @@ export function useCreateCostItem(monthId: number) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: WarehouseCostFormData) =>
-      apiFetch(`${BASE}/warehouse-costs/items/`, {
+      apiFetch(`${getApiBase()}/warehouse-costs/items/`, {
         method: "POST",
         body: JSON.stringify({
           month: monthId,
@@ -99,7 +98,7 @@ export function useUpdateCostItem(monthId: number) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: WarehouseCostFormData }) =>
-      apiFetch(`${BASE}/warehouse-costs/items/${id}/`, {
+      apiFetch(`${getApiBase()}/warehouse-costs/items/${id}/`, {
         method: "PATCH",
         body: JSON.stringify({
           cost_type: data.cost_type,
@@ -120,7 +119,7 @@ export function useDeleteCostItem(monthId: number) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      apiFetch(`${BASE}/warehouse-costs/items/${id}/`, { method: "DELETE" }),
+      apiFetch(`${getApiBase()}/warehouse-costs/items/${id}/`, { method: "DELETE" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: warehouseCostKeys.detail(monthId) });
       qc.invalidateQueries({ queryKey: warehouseCostKeys.all() });

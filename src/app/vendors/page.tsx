@@ -5,9 +5,8 @@ import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { Pagination } from "@/components/inventory/pagination";
 import { TableLoader } from "@/components/inventory/ui-primitives";
 import { apiFetch } from "@/lib/apiFetch";
+import { getApiBase } from "@/lib/api-config";
 import { Vendor, VendorFormData } from "@/types/vendor";
-
-const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
 const EMPTY_FORM: VendorFormData = {
   name: "",
@@ -41,7 +40,7 @@ export default function VendorPage() {
     params.set("page", String(page));
     setLoading(true);
     try {
-      const data = await apiFetch(`${BASE}/vendors/?${params}`);
+      const data = await apiFetch(`${getApiBase()}/vendors/?${params}`);
       setVendors(data.results ?? data);
       setTotal(data.count ?? data.length);
     } catch (e) { console.error(e); }
@@ -53,7 +52,7 @@ export default function VendorPage() {
   /* ── Open detail ─────────────────────────────────────── */
   const openDetail = async (id: number) => {
     try {
-      const data = await apiFetch(`${BASE}/vendors/${id}/`);
+      const data = await apiFetch(`${getApiBase()}/vendors/${id}/`);
       setDetailVendor(data);
       setDetailOpen(true);
     } catch (e) { console.error(e); }
@@ -88,12 +87,12 @@ export default function VendorPage() {
     setError(null);
     try {
       if (editTarget) {
-        await apiFetch(`${BASE}/vendors/${editTarget.id}/`, {
+        await apiFetch(`${getApiBase()}/vendors/${editTarget.id}/`, {
           method: "PATCH",
           body: JSON.stringify(formData),
         });
       } else {
-        await apiFetch(`${BASE}/vendors/`, {
+        await apiFetch(`${getApiBase()}/vendors/`, {
           method: "POST",
           body: JSON.stringify(formData),
         });
@@ -108,7 +107,7 @@ export default function VendorPage() {
   /* ── Delete ──────────────────────────────────────────── */
   const handleDelete = async (id: number) => {
     try {
-      await apiFetch(`${BASE}/vendors/${id}/`, { method: "DELETE" });
+      await apiFetch(`${getApiBase()}/vendors/${id}/`, { method: "DELETE" });
       setDeleteId(null);
       setDetailOpen(false);
       loadVendors();

@@ -3,9 +3,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { apiFetch } from "@/lib/apiFetch";
+import { getApiBase } from "@/lib/api-config";
 import { MonthlyReport, YearlyReport, MONTHS } from "@/types/report";
-
-const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
 const fmt = (v: string | null | undefined) =>
   v ? "$" + parseFloat(v).toLocaleString("en-BD", { minimumFractionDigits: 2 }) : "$0.00";
@@ -76,7 +75,7 @@ export default function ReportsPage() {
     const params = new URLSearchParams();
     if (yearFilter) params.set("year", yearFilter);
     try {
-      const data = await apiFetch(`${BASE}/reports/monthly/?${params}`);
+      const data = await apiFetch(`${getApiBase()}/reports/monthly/?${params}`);
       setMonthlyReports(data.results ?? data);
       setMonthlyTotal(data.count ?? data.length);
     } catch (e) { console.error(e); }
@@ -86,7 +85,7 @@ export default function ReportsPage() {
   const loadYearly = useCallback(async () => {
     setYearlyLoading(true);
     try {
-      const data = await apiFetch(`${BASE}/reports/yearly/`);
+      const data = await apiFetch(`${getApiBase()}/reports/yearly/`);
       setYearlyReports(data.results ?? data);
     } catch (e) { console.error(e); }
     finally { setYearlyLoading(false); }
@@ -113,7 +112,7 @@ export default function ReportsPage() {
         : { year: parseInt(formYear) };
     try {
       await apiFetch(
-        `${BASE}/reports/${modalType === "monthly" ? "monthly" : "yearly"}/`,
+        `${getApiBase()}/reports/${modalType === "monthly" ? "monthly" : "yearly"}/`,
         { method: "POST", body: JSON.stringify(payload) }
       );
       setModalOpen(false);
@@ -127,7 +126,7 @@ export default function ReportsPage() {
   const recalculate = async (id: number, type: "monthly" | "yearly") => {
     setRecalcId(id);
     try {
-      await apiFetch(`${BASE}/reports/${type}/${id}/recalculate/`, { method: "POST" });
+      await apiFetch(`${getApiBase()}/reports/${type}/${id}/recalculate/`, { method: "POST" });
       type === "monthly" ? loadMonthly() : loadYearly();
     } catch (e) { console.error(e); }
     finally { setRecalcId(null); }
@@ -138,7 +137,7 @@ export default function ReportsPage() {
     if (!deleteTarget) return;
     try {
       await apiFetch(
-        `${BASE}/reports/${deleteTarget.type}/${deleteTarget.id}/`,
+        `${getApiBase()}/reports/${deleteTarget.type}/${deleteTarget.id}/`,
         { method: "DELETE" }
       );
       setDeleteTarget(null);

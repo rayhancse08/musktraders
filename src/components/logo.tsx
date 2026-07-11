@@ -1,27 +1,19 @@
-import darkLogo from "@/assets/logos/dark.svg";
-import logo from "@/assets/logos/main.svg";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 
-export function Logo() {
+export function Logo({ variant = "dark" }: { variant?: "dark" | "light" }) {
+  const src = variant === "light" ? "/images/logo/logo.svg" : "/images/logo/logo-dark.svg";
+
   return (
-    <div className="relative h-32 w-48">
+    <div className={cn("relative", variant === "light" ? "h-9 w-48" : "h-9 w-44")}>
       <Image
-        src="/images/logo.png"
+        src={src}
         fill
-        // className="dark:hidden"
-        alt="NextAdmin logo"
+        alt="Nextera Inventory Solution logo"
         role="presentation"
         quality={100}
+        className="object-contain object-left"
       />
-
-      {/*<Image*/}
-      {/*  src={darkLogo}*/}
-      {/*  fill*/}
-      {/*  className="hidden dark:block"*/}
-      {/*  alt="NextAdmin logo"*/}
-      {/*  role="presentation"*/}
-      {/*  quality={100}*/}
-      {/*/>*/}
     </div>
   );
 }

@@ -2,6 +2,26 @@ import { cn } from "@/lib/utils";
 import { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
 import { Modal } from "./modal";
 
+export function PageHeader({
+  title,
+  description,
+  actions,
+}: {
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
+        {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
+      </div>
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+    </div>
+  );
+}
+
 export function TabSwitcher<T extends string>({
   tabs,
   active,
@@ -16,7 +36,7 @@ export function TabSwitcher<T extends string>({
   return (
     <div
       className={cn(
-        "inline-flex gap-1 p-1 rounded-xl bg-gray-100/80 dark:bg-dark-3 border border-gray-200/60 dark:border-dark-3",
+        "inline-flex gap-1 rounded-xl border border-slate-200 bg-slate-100/80 p-1",
         className,
       )}
     >
@@ -26,20 +46,20 @@ export function TabSwitcher<T extends string>({
           type="button"
           onClick={() => onChange(key)}
           className={cn(
-            "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+            "rounded-lg px-4 py-2 text-sm font-medium transition-all",
             active === key
-              ? "bg-white dark:bg-dark-2 text-gray-900 dark:text-white shadow-sm"
-              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200",
+              ? "bg-white text-slate-900 shadow-sm"
+              : "text-slate-500 hover:text-slate-700",
           )}
         >
           {label}
           {count !== undefined && (
             <span
               className={cn(
-                "ml-2 text-xs px-1.5 py-0.5 rounded-full",
+                "ml-2 rounded-full px-1.5 py-0.5 text-xs",
                 active === key
-                  ? "bg-primary/10 text-primary"
-                  : "bg-gray-200/80 text-gray-500 dark:bg-dark-3 dark:text-gray-400",
+                  ? "bg-indigo-50 text-indigo-600"
+                  : "bg-slate-200/80 text-slate-500",
               )}
             >
               {count}
@@ -63,15 +83,10 @@ export function InventoryCard({
   badge?: ReactNode;
 }) {
   return (
-    <div
-      className={cn(
-        "bg-white dark:bg-gray-dark rounded-2xl border border-gray-200/80 dark:border-dark-3 overflow-hidden shadow-sm",
-        className,
-      )}
-    >
+    <div className={cn("card overflow-hidden", className)}>
       {(title || badge) && (
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-dark-3 flex justify-between items-center">
-          {title && <span className="font-semibold text-gray-800 dark:text-white">{title}</span>}
+        <div className="card-header">
+          {title && <span className="font-semibold text-slate-800">{title}</span>}
           {badge}
         </div>
       )}
@@ -80,16 +95,23 @@ export function InventoryCard({
   );
 }
 
-export function Badge({ children, variant = "default" }: { children: ReactNode; variant?: "default" | "primary" }) {
+export function Badge({
+  children,
+  variant = "default",
+}: {
+  children: ReactNode;
+  variant?: "default" | "primary" | "success" | "warning" | "danger";
+}) {
+  const variants = {
+    default: "bg-slate-100 text-slate-600",
+    primary: "bg-indigo-50 text-indigo-700",
+    success: "bg-emerald-50 text-emerald-700",
+    warning: "bg-amber-50 text-amber-700",
+    danger: "bg-red-50 text-red-700",
+  };
+
   return (
-    <span
-      className={cn(
-        "text-xs px-2.5 py-1 rounded-full font-medium",
-        variant === "primary"
-          ? "bg-primary/10 text-primary border border-primary/20"
-          : "bg-gray-50 text-gray-500 border border-gray-200 dark:bg-dark-3 dark:text-gray-400 dark:border-dark-3",
-      )}
-    >
+    <span className={cn("badge", variants[variant])}>
       {children}
     </span>
   );
@@ -99,11 +121,7 @@ export function SearchInput(props: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className={cn(
-        "border border-gray-200 dark:border-dark-3 bg-white dark:bg-dark-2 px-3.5 py-2.5 rounded-xl text-sm w-56 outline-none",
-        "focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-gray-400",
-        props.className,
-      )}
+      className={cn("input-modern w-56", props.className)}
     />
   );
 }
@@ -112,18 +130,14 @@ export function FormSelect(props: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
       {...props}
-      className={cn(
-        "border border-gray-200 dark:border-dark-3 bg-white dark:bg-dark-2 px-3.5 py-2.5 rounded-xl text-sm outline-none",
-        "focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all",
-        props.className,
-      )}
+      className={cn("input-modern", props.className)}
     />
   );
 }
 
 export function FormLabel({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <label className={cn("text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-1.5", className)}>
+    <label className={cn("mb-1.5 block text-sm font-medium text-slate-700", className)}>
       {children}
     </label>
   );
@@ -133,11 +147,7 @@ export function FormInput(props: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className={cn(
-        "border border-gray-200 dark:border-dark-3 bg-white dark:bg-dark-2 rounded-xl px-3.5 py-2.5 w-full text-sm outline-none",
-        "focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all",
-        props.className,
-      )}
+      className={cn("input-modern", props.className)}
     />
   );
 }
@@ -147,8 +157,7 @@ export function FormTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaEle
     <textarea
       {...props}
       className={cn(
-        "border border-gray-200 dark:border-dark-3 bg-white dark:bg-dark-2 rounded-xl px-3.5 py-2.5 w-full text-sm outline-none resize-none",
-        "focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all",
+        "w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10",
         props.className,
       )}
     />
@@ -157,15 +166,7 @@ export function FormTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaEle
 
 export function PrimaryButton({ children, className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button
-      type="button"
-      {...props}
-      className={cn(
-        "bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2",
-        "hover:bg-primary/90 shadow-sm shadow-primary/25 disabled:opacity-60 transition-all",
-        className,
-      )}
-    >
+    <button type="button" {...props} className={cn("btn-primary", className)}>
       {children}
     </button>
   );
@@ -173,15 +174,7 @@ export function PrimaryButton({ children, className, ...props }: ButtonHTMLAttri
 
 export function SecondaryButton({ children, className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button
-      type="button"
-      {...props}
-      className={cn(
-        "px-5 py-2.5 text-sm text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-dark-3 rounded-xl",
-        "hover:bg-gray-50 dark:hover:bg-dark-3 transition-colors disabled:opacity-60",
-        className,
-      )}
-    >
+    <button type="button" {...props} className={cn("btn-secondary", className)}>
       {children}
     </button>
   );
@@ -193,7 +186,7 @@ export function DangerButton({ children, className, ...props }: ButtonHTMLAttrib
       type="button"
       {...props}
       className={cn(
-        "px-5 py-2.5 bg-red-600 text-white text-sm font-medium rounded-xl hover:bg-red-700 disabled:opacity-60 transition-colors",
+        "inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60",
         className,
       )}
     >
@@ -204,7 +197,7 @@ export function DangerButton({ children, className, ...props }: ButtonHTMLAttrib
 
 export function AlertError({ message }: { message: string }) {
   return (
-    <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 text-sm px-4 py-3 rounded-xl">
+    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
       {message}
     </div>
   );
@@ -212,13 +205,13 @@ export function AlertError({ message }: { message: string }) {
 
 export function SectionLoader({ message = "Loading..." }: { message?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-4">
+    <div className="flex flex-col items-center justify-center px-4 py-16">
       <div
-        className="w-9 h-9 border-2 border-gray-200 dark:border-dark-3 border-t-primary rounded-full animate-spin mb-3"
+        className="mb-3 h-9 w-9 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600"
         role="status"
         aria-label="Loading"
       />
-      <p className="text-gray-400 dark:text-gray-500 text-sm">{message}</p>
+      <p className="text-sm text-slate-500">{message}</p>
     </div>
   );
 }
@@ -226,14 +219,14 @@ export function SectionLoader({ message = "Loading..." }: { message?: string }) 
 export function TableLoader({ colSpan, message = "Loading..." }: { colSpan: number; message?: string }) {
   return (
     <tr>
-      <td colSpan={colSpan} className="text-center py-16">
+      <td colSpan={colSpan} className="py-16 text-center">
         <div className="inline-flex flex-col items-center gap-3">
           <div
-            className="w-8 h-8 border-2 border-gray-200 dark:border-dark-3 border-t-primary rounded-full animate-spin"
+            className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600"
             role="status"
             aria-label="Loading"
           />
-          <span className="text-gray-400 dark:text-gray-500 text-sm">{message}</span>
+          <span className="text-sm text-slate-500">{message}</span>
         </div>
       </td>
     </tr>
@@ -242,11 +235,11 @@ export function TableLoader({ colSpan, message = "Loading..." }: { colSpan: numb
 
 export function EmptyState({ message }: { message: string }) {
   return (
-    <div className="text-center py-16 px-4">
-      <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-100 dark:bg-dark-3 flex items-center justify-center text-2xl">
+    <div className="px-4 py-16 text-center">
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-2xl">
         📦
       </div>
-      <p className="text-gray-500 dark:text-gray-400 text-sm">{message}</p>
+      <p className="text-sm text-slate-500">{message}</p>
     </div>
   );
 }
@@ -277,7 +270,7 @@ export function DeleteModal({
         </div>
       }
     >
-      <p className="text-sm text-gray-500 dark:text-gray-400">
+      <p className="text-sm text-slate-500">
         This soft-deletes the record. Linked transactions and warehouse data remain unaffected.
       </p>
     </Modal>

@@ -2,12 +2,11 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { apiFetch } from "@/lib/apiFetch";
+import { getApiBase } from "@/lib/api-config";
 import {
   PurchaseFormData, PurchaseItemFormData,
   VendorOption, ProductOption,
 } from "@/types/purchase";
-
-const BASE = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
 type Props = {
   formData: PurchaseFormData;
@@ -61,7 +60,7 @@ export default function PurchaseCreateModal({
     const loadVendors = async () => {
       try {
         const res = await apiFetch(
-          `${BASE}/vendors/autocomplete/?page=${vendorPage}`
+          `${getApiBase()}/vendors/autocomplete/?page=${vendorPage}`
         );
 
         setVendors(res.results ?? res);
@@ -107,7 +106,7 @@ export default function PurchaseCreateModal({
     timerRefs.current[i] = setTimeout(async () => {
       if (!q) return;
       const res: ProductOption[] = await apiFetch(
-        `${BASE}/products/autocomplete/?q=${encodeURIComponent(q)}`
+        `${getApiBase()}/products/autocomplete/?q=${encodeURIComponent(q)}`
       );
       setOptions((p) => { const a = [...p]; a[i] = res; return a; });
     }, 300);
