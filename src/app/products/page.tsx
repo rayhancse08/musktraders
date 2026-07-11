@@ -19,7 +19,7 @@ import {
   useCreateProduct, useUpdateProduct, useDeleteProduct, useRecalculateProduct,
   useCreateCategory, useUpdateCategory, useDeleteCategory,
 } from "@/hooks/useProducts";
-import { useBrands } from "@/hooks/useBrands";
+import { useBrandsAll } from "@/hooks/useBrands";
 import { apiFetch } from "@/lib/apiFetch";
 import { getApiBase } from "@/lib/api-config";
 
@@ -155,7 +155,7 @@ export default function ProductsPage() {
   const { data: productsData, isLoading: productsLoading } = useProducts(params);
   const { data: detailProduct, isLoading: detailLoading }  = useProductDetail(detailId);
   const { data: categories = [], isLoading: categoriesLoading } = useProductCategories();
-  const { data: brands = [] }                              = useBrands();
+  const { data: brands = [] }                              = useBrandsAll();
 
   const createProduct    = useCreateProduct();
   const updateProduct    = useUpdateProduct();

@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { Pagination } from "@/components/inventory/pagination";
 import { TableLoader } from "@/components/inventory/ui-primitives";
 import { apiFetch } from "@/lib/apiFetch";
 import { getApiBase } from "@/lib/api-config";
 import { Vendor, VendorFormData } from "@/types/vendor";
+import { vendorKeys, useVendors } from "@/hooks/useVendors";
 
 const EMPTY_FORM: VendorFormData = {
   name: "",
@@ -16,10 +18,16 @@ const EMPTY_FORM: VendorFormData = {
 };
 
 export default function VendorPage() {
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [total, setTotal] = useState(0);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+
+  const { data, isLoading } = useVendors({ search, page });
+  const vendors = data?.results ?? [];
+  const total = data?.count ?? 0;
+  const loading = isLoading && !data;
+
+  const refreshVendors = () => queryClient.invalidateQueries({ queryKey: vendorKeys.all() });
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Vendor | null>(null);
@@ -31,23 +39,6 @@ export default function VendorPage() {
   const [detailVendor, setDetailVendor] = useState<Vendor | null>(null);
 
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  /* ── Load ────────────────────────────────────────────── */
-  const loadVendors = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    params.set("page", String(page));
-    setLoading(true);
-    try {
-      const data = await apiFetch(`${getApiBase()}/vendors/?${params}`);
-      setVendors(data.results ?? data);
-      setTotal(data.count ?? data.length);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  }, [search, page]);
-
-  useEffect(() => { loadVendors(); }, [loadVendors]);
 
   /* ── Open detail ─────────────────────────────────────── */
   const openDetail = async (id: number) => {
@@ -98,7 +89,7 @@ export default function VendorPage() {
         });
       }
       setModalOpen(false);
-      loadVendors();
+      refreshVendors();
     } catch (err: any) {
       setError(err.message ?? "Failed to save vendor");
     } finally { setSaving(false); }
@@ -110,7 +101,7 @@ export default function VendorPage() {
       await apiFetch(`${getApiBase()}/vendors/${id}/`, { method: "DELETE" });
       setDeleteId(null);
       setDetailOpen(false);
-      loadVendors();
+      refreshVendors();
     } catch (e) { console.error(e); }
   };
 

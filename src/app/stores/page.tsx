@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { Pagination } from "@/components/inventory/pagination";
 import { TableLoader } from "@/components/inventory/ui-primitives";
 import { apiFetch } from "@/lib/apiFetch";
 import { getApiBase } from "@/lib/api-config";
 import { Store, StoreFormData } from "@/types/store";
+import { storeKeys, useStores } from "@/hooks/useStores";
 
 const EMPTY_FORM: StoreFormData = {
   name: "",
@@ -20,10 +22,16 @@ const EMPTY_FORM: StoreFormData = {
 };
 
 export default function StorePage() {
-  const [stores, setStores] = useState<Store[]>([]);
-  const [total, setTotal] = useState(0);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+
+  const { data, isLoading } = useStores({ search, page });
+  const stores = data?.results ?? [];
+  const total = data?.count ?? 0;
+  const loading = isLoading && !data;
+
+  const refreshStores = () => queryClient.invalidateQueries({ queryKey: storeKeys.all() });
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Store | null>(null);
@@ -31,25 +39,6 @@ export default function StorePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const loadStores = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    params.set("page", String(page));
-    setLoading(true);
-    try {
-      const data = await apiFetch(`${getApiBase()}/stores/?${params}`);
-      setStores(data.results ?? data);
-      setTotal(data.count ?? data.length);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, [search, page]);
-
-  useEffect(() => { loadStores(); }, [loadStores]);
 
   const openCreate = () => {
     setEditTarget(null);
@@ -90,7 +79,7 @@ export default function StorePage() {
         });
       }
       setModalOpen(false);
-      loadStores();
+      refreshStores();
     } catch (err: any) {
       setError(err.message ?? "Failed to save store");
     } finally {
@@ -102,7 +91,7 @@ export default function StorePage() {
     try {
       await apiFetch(`${getApiBase()}/stores/${id}/`, { method: "DELETE" });
       setDeleteId(null);
-      loadStores();
+      refreshStores();
     } catch (e) {
       console.error(e);
     }

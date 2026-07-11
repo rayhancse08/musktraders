@@ -5,6 +5,8 @@ import {
   useContext,
   useState,
   useEffect,
+  useMemo,
+  useCallback,
 } from "react";
 
 /* ---------------- Types ---------------- */
@@ -73,13 +75,12 @@ export const AuthProvider = ({
 
   /* ---------------- Login ---------------- */
 
-  const login = (data: {
+  const login = useCallback((data: {
     user?: User;
     access?: string;
     refresh?: string;
   }) => {
     try {
-      // ✅ Validate user before saving
       if (data.user) {
         localStorage.setItem("user", JSON.stringify(data.user));
         setUser(data.user);
@@ -97,11 +98,9 @@ export const AuthProvider = ({
     } catch (err) {
       console.error("Login error:", err);
     }
-  };
+  }, []);
 
-  /* ---------------- Logout ---------------- */
-
-  const logout = () => {
+  const logout = useCallback(() => {
     try {
       localStorage.removeItem("user");
       localStorage.removeItem("access");
@@ -111,19 +110,15 @@ export const AuthProvider = ({
     } catch (err) {
       console.error("Logout error:", err);
     }
-  };
+  }, []);
 
-  /* ---------------- Provider ---------------- */
+  const value = useMemo(
+    () => ({ user, loading, login, logout }),
+    [user, loading, login, logout]
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        login,
-        logout,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

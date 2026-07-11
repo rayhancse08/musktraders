@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { apiFetch } from "@/lib/apiFetch";
 import { getApiBase } from "@/lib/api-config";
@@ -8,6 +9,7 @@ import { Sale, SaleDetail, SaleFormData } from "@/types/sale";
 import SaleTable from "@/components/Sales/SaleTable";
 import SaleCreateModal from "@/components/Sales/SaleCreateModal";
 import SaleDetailModal from "@/components/Sales/SaleDetailModal";
+import { saleKeys, useSales } from "@/hooks/useSales";
 
 const EMPTY_FORM: SaleFormData = {
   date: new Date().toISOString().slice(0, 10),
@@ -22,11 +24,17 @@ const EMPTY_FORM: SaleFormData = {
 };
 
 export default function SalesPage() {
-  const [sales, setSales] = useState<Sale[]>([]);
-  const [total, setTotal] = useState(0);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
+
+  const { data, isLoading } = useSales({ search, status: statusFilter, page });
+  const sales = data?.results ?? [];
+  const total = data?.count ?? 0;
+  const loading = isLoading && !data;
+
+  const refreshSales = () => queryClient.invalidateQueries({ queryKey: saleKeys.all() });
 
   const [createOpen, setCreateOpen] = useState(false);
   const [formData, setFormData] = useState<SaleFormData>(EMPTY_FORM);
@@ -37,29 +45,6 @@ export default function SalesPage() {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const loadSales = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (statusFilter) params.set("status", statusFilter);
-    params.set("page", String(page));
-
-    setLoading(true);
-    try {
-      const data = await apiFetch(`${getApiBase()}/sales/?${params}`);
-      setSales(data.results ?? data);
-      setTotal(data.count ?? data.length);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, [search, statusFilter, page]);
-
-  useEffect(() => {
-    loadSales();
-  }, [loadSales]);
 
   const openDetail = async (id: number) => {
     setDetailLoading(true);
@@ -84,7 +69,7 @@ export default function SalesPage() {
       });
       setCreateOpen(false);
       setFormData(EMPTY_FORM);
-      loadSales();
+      refreshSales();
     } catch (err: any) {
       setError(err.message ?? "Failed to create sale");
     } finally {
@@ -121,7 +106,7 @@ export default function SalesPage() {
       });
 
       await openDetail(saleId);
-      await loadSales();
+      await refreshSales();
     } catch (err: any) {
       setError(err.message ?? "Failed to update sale");
       console.error(err);
@@ -139,7 +124,7 @@ export default function SalesPage() {
         body: JSON.stringify({ status }),
       });
       setDetailSale(updated);
-      loadSales();
+      refreshSales();
     } catch (e) {
       console.error(e);
     }

@@ -13,6 +13,7 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "tsx prisma/reset-data.ts",
     "db:studio": "prisma studio",
     "postinstall": "node scripts/postinstall.js"
   },

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { apiFetch } from "@/lib/apiFetch";
 import { getApiBase } from "@/lib/api-config";
@@ -10,6 +11,7 @@ import {
   TaxItem, TaxItemFormData, MonthlyTaxFileFormData,
   MONTHS,
 } from "@/types/tax";
+import { taxKeys, useTaxCategories, useTaxCompanies, useTaxMonthlyFiles } from "@/hooks/useTax";
 
 const d4 = (v: string | number) =>
   String(parseFloat(String(v || 0)).toFixed(4));
@@ -97,84 +99,33 @@ function NameTile({
 
 // ════════════════════════════════════════════════════════════════════════════
 export default function TaxPage() {
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<"files" | "categories" | "companies">("files");
 
   // ── Tax Categories ────────────────────────────────────────────────────────
-  const [categories, setCategories] = useState<TaxCategory[]>([]);
   const [catSearch, setCatSearch] = useState("");
   const [catModal, setCatModal] = useState<{ open: boolean; id?: number; value: string; error: string | null; saving: boolean }>({ open: false, value: "", error: null, saving: false });
   const [catDeleteId, setCatDeleteId] = useState<number | null>(null);
 
-  const loadCategories = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (catSearch) params.set("search", catSearch);
-    const data = await apiFetch(`${getApiBase()}/tax/categories/?${params}`);
-    setCategories(data.results ?? data);
-  }, [catSearch]);
-
-  useEffect(() => { loadCategories(); }, [loadCategories]);
-
-  const saveCat = async () => {
-    if (!catModal.value.trim()) { setCatModal((p) => ({ ...p, error: "Name is required." })); return; }
-    setCatModal((p) => ({ ...p, saving: true, error: null }));
-    try {
-      if (catModal.id) {
-        await apiFetch(`${getApiBase()}/tax/categories/${catModal.id}/`, { method: "PATCH", body: JSON.stringify({ name: catModal.value }) });
-      } else {
-        await apiFetch(`${getApiBase()}/tax/categories/`, { method: "POST", body: JSON.stringify({ name: catModal.value }) });
-      }
-      setCatModal({ open: false, value: "", error: null, saving: false });
-      loadCategories();
-    } catch (e: any) { setCatModal((p) => ({ ...p, saving: false, error: e.message ?? "Failed" })); }
-  };
-
-  const deleteCat = async (id: number) => {
-    await apiFetch(`${getApiBase()}/tax/categories/${id}/`, { method: "DELETE" });
-    setCatDeleteId(null); loadCategories();
-  };
-
   // ── Tax Companies ─────────────────────────────────────────────────────────
-  const [companies, setCompanies] = useState<TaxCompany[]>([]);
   const [compSearch, setCompSearch] = useState("");
   const [compModal, setCompModal] = useState<{ open: boolean; id?: number; value: string; error: string | null; saving: boolean }>({ open: false, value: "", error: null, saving: false });
   const [compDeleteId, setCompDeleteId] = useState<number | null>(null);
 
-  const loadCompanies = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (compSearch) params.set("search", compSearch);
-    const data = await apiFetch(`${getApiBase()}/tax/companies/?${params}`);
-    setCompanies(data.results ?? data);
-  }, [compSearch]);
-
-  useEffect(() => { loadCompanies(); }, [loadCompanies]);
-
-  const saveComp = async () => {
-    if (!compModal.value.trim()) { setCompModal((p) => ({ ...p, error: "Name is required." })); return; }
-    setCompModal((p) => ({ ...p, saving: true, error: null }));
-    try {
-      if (compModal.id) {
-        await apiFetch(`${getApiBase()}/tax/companies/${compModal.id}/`, { method: "PATCH", body: JSON.stringify({ name: compModal.value }) });
-      } else {
-        await apiFetch(`${getApiBase()}/tax/companies/`, { method: "POST", body: JSON.stringify({ name: compModal.value }) });
-      }
-      setCompModal({ open: false, value: "", error: null, saving: false });
-      loadCompanies();
-    } catch (e: any) { setCompModal((p) => ({ ...p, saving: false, error: e.message ?? "Failed" })); }
-  };
-
-  const deleteComp = async (id: number) => {
-    await apiFetch(`${getApiBase()}/tax/companies/${id}/`, { method: "DELETE" });
-    setCompDeleteId(null); loadCompanies();
-  };
-
   // ── Monthly Tax Files ─────────────────────────────────────────────────────
-  const [files, setFiles] = useState<MonthlyTaxFile[]>([]);
-  const [filesTotal, setFilesTotal] = useState(0);
   const [filesYear, setFilesYear] = useState(String(currentYear));
-  const [filesLoading, setFilesLoading] = useState(false);
 
   // file create modal
   const [fileModal, setFileModal] = useState(false);
+
+  // tax item modal
+  const [itemModal, setItemModal] = useState(false);
+  const [itemEditId, setItemEditId] = useState<number | null>(null);
+  const [itemForm, setItemForm] = useState<TaxItemFormData>({ tax_category: "", date: "", amount: "", notes: "" });
+  const [itemSaving, setItemSaving] = useState(false);
+  const [itemError, setItemError] = useState<string | null>(null);
+  const [itemDeleteId, setItemDeleteId] = useState<number | null>(null);
+
   const [fileForm, setFileForm] = useState<MonthlyTaxFileFormData>({
     year: String(currentYear),
     month: String(new Date().getMonth() + 1),
@@ -188,32 +139,65 @@ export default function TaxPage() {
   const [newCompanySaving, setNewCompanySaving] = useState(false);
   const [newCompanyError, setNewCompanyError] = useState<string | null>(null);
 
-  // file detail / items
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailFile, setDetailFile] = useState<MonthlyTaxFileDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // tax item modal
-  const [itemModal, setItemModal] = useState(false);
-  const [itemEditId, setItemEditId] = useState<number | null>(null);
-  const [itemForm, setItemForm] = useState<TaxItemFormData>({ tax_category: "", date: "", amount: "", notes: "" });
-  const [itemSaving, setItemSaving] = useState(false);
-  const [itemError, setItemError] = useState<string | null>(null);
-  const [itemDeleteId, setItemDeleteId] = useState<number | null>(null);
+  const { data: categories = [] } = useTaxCategories(
+    catSearch,
+    tab === "categories" || itemModal
+  );
+  const { data: companies = [] } = useTaxCompanies(
+    compSearch,
+    tab === "companies" || fileModal
+  );
+  const { data: filesData, isLoading: filesIsLoading } = useTaxMonthlyFiles(
+    filesYear,
+    tab === "files"
+  );
+  const files = filesData?.results ?? [];
+  const filesTotal = filesData?.count ?? 0;
+  const filesLoading = filesIsLoading && !filesData;
 
-  const loadFiles = useCallback(async () => {
-    setFilesLoading(true);
-    const params = new URLSearchParams();
-    if (filesYear) params.set("year", filesYear);
+  const saveCat = async () => {
+    if (!catModal.value.trim()) { setCatModal((p) => ({ ...p, error: "Name is required." })); return; }
+    setCatModal((p) => ({ ...p, saving: true, error: null }));
     try {
-      const data = await apiFetch(`${getApiBase()}/tax/monthly-files/?${params}`);
-      setFiles(data.results ?? data);
-      setFilesTotal(data.count ?? data.length);
-    } catch (e) { console.error(e); }
-    finally { setFilesLoading(false); }
-  }, [filesYear]);
+      if (catModal.id) {
+        await apiFetch(`${getApiBase()}/tax/categories/${catModal.id}/`, { method: "PATCH", body: JSON.stringify({ name: catModal.value }) });
+      } else {
+        await apiFetch(`${getApiBase()}/tax/categories/`, { method: "POST", body: JSON.stringify({ name: catModal.value }) });
+      }
+      setCatModal({ open: false, value: "", error: null, saving: false });
+      queryClient.invalidateQueries({ queryKey: taxKeys.categories() });
+    } catch (e: any) { setCatModal((p) => ({ ...p, saving: false, error: e.message ?? "Failed" })); }
+  };
 
-  useEffect(() => { loadFiles(); }, [loadFiles]);
+  const deleteCat = async (id: number) => {
+    await apiFetch(`${getApiBase()}/tax/categories/${id}/`, { method: "DELETE" });
+    setCatDeleteId(null);
+    queryClient.invalidateQueries({ queryKey: taxKeys.categories() });
+  };
+
+  const saveComp = async () => {
+    if (!compModal.value.trim()) { setCompModal((p) => ({ ...p, error: "Name is required." })); return; }
+    setCompModal((p) => ({ ...p, saving: true, error: null }));
+    try {
+      if (compModal.id) {
+        await apiFetch(`${getApiBase()}/tax/companies/${compModal.id}/`, { method: "PATCH", body: JSON.stringify({ name: compModal.value }) });
+      } else {
+        await apiFetch(`${getApiBase()}/tax/companies/`, { method: "POST", body: JSON.stringify({ name: compModal.value }) });
+      }
+      setCompModal({ open: false, value: "", error: null, saving: false });
+      queryClient.invalidateQueries({ queryKey: taxKeys.companies() });
+    } catch (e: any) { setCompModal((p) => ({ ...p, saving: false, error: e.message ?? "Failed" })); }
+  };
+
+  const deleteComp = async (id: number) => {
+    await apiFetch(`${getApiBase()}/tax/companies/${id}/`, { method: "DELETE" });
+    setCompDeleteId(null);
+    queryClient.invalidateQueries({ queryKey: taxKeys.companies() });
+  };
 
   const loadDetail = async (id: number) => {
     setDetailLoading(true);
@@ -240,7 +224,7 @@ export default function TaxPage() {
       setShowNewCompany(false);
       setNewCompanyName("");
       setNewCompanyError(null);
-      loadFiles();
+      queryClient.invalidateQueries({ queryKey: taxKeys.files(filesYear) });
     } catch (e: any) { setFileError(e.message ?? "Failed"); }
     finally { setFileSaving(false); }
   };
@@ -257,7 +241,7 @@ export default function TaxPage() {
         method: "POST",
         body: JSON.stringify({ name: newCompanyName.trim() }),
       });
-      await loadCompanies();
+      await queryClient.invalidateQueries({ queryKey: taxKeys.companies() });
       setFileForm((p) => ({ ...p, company_name: String(created.id) }));
       setShowNewCompany(false);
       setNewCompanyName("");
@@ -270,7 +254,8 @@ export default function TaxPage() {
 
   const deleteFile = async (id: number) => {
     await apiFetch(`${getApiBase()}/tax/monthly-files/${id}/`, { method: "DELETE" });
-    setFileDeleteId(null); loadFiles();
+    setFileDeleteId(null);
+    queryClient.invalidateQueries({ queryKey: taxKeys.files(filesYear) });
   };
 
   // ── Tax Items ─────────────────────────────────────────────────────────────

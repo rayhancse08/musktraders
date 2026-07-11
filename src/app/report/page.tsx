@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { apiFetch } from "@/lib/apiFetch";
 import { getApiBase } from "@/lib/api-config";
 import { MonthlyReport, YearlyReport, MONTHS } from "@/types/report";
+import { reportKeys, useMonthlyReports, useYearlyReports } from "@/hooks/useReports";
 
 const fmt = (v: string | null | undefined) =>
   v ? "$" + parseFloat(v).toLocaleString("en-BD", { minimumFractionDigits: 2 }) : "$0.00";
@@ -47,17 +49,27 @@ const currentYear = new Date().getFullYear();
 const YEARS = Array.from({ length: currentYear - 2022 }, (_, i) => currentYear - i);
 
 export default function ReportsPage() {
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<"monthly" | "yearly">("monthly");
 
-  /* Monthly state */
-  const [monthlyReports, setMonthlyReports] = useState<MonthlyReport[]>([]);
-  const [monthlyTotal, setMonthlyTotal] = useState(0);
   const [yearFilter, setYearFilter] = useState(String(currentYear));
-  const [monthlyLoading, setMonthlyLoading] = useState(false);
 
-  /* Yearly state */
-  const [yearlyReports, setYearlyReports] = useState<YearlyReport[]>([]);
-  const [yearlyLoading, setYearlyLoading] = useState(false);
+  const { data: monthlyData, isLoading: monthlyIsLoading } = useMonthlyReports(
+    yearFilter,
+    tab === "monthly"
+  );
+  const monthlyReports = monthlyData?.results ?? [];
+  const monthlyTotal = monthlyData?.count ?? 0;
+  const monthlyLoading = monthlyIsLoading && !monthlyData;
+
+  const { data: yearlyData, isLoading: yearlyIsLoading } = useYearlyReports(
+    tab === "yearly"
+  );
+  const yearlyReports = yearlyData ?? [];
+  const yearlyLoading = yearlyIsLoading && !yearlyData;
+
+  const refreshMonthly = () => queryClient.invalidateQueries({ queryKey: reportKeys.all() });
+  const refreshYearly = () => queryClient.invalidateQueries({ queryKey: reportKeys.yearly() });
 
   /* Modal state */
   const [modalOpen, setModalOpen] = useState(false);
@@ -68,31 +80,6 @@ export default function ReportsPage() {
   const [error, setError] = useState<string | null>(null);
   const [recalcId, setRecalcId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; type: "monthly" | "yearly" } | null>(null);
-
-  /* ── Loaders ─────────────────────────────────────────── */
-  const loadMonthly = useCallback(async () => {
-    setMonthlyLoading(true);
-    const params = new URLSearchParams();
-    if (yearFilter) params.set("year", yearFilter);
-    try {
-      const data = await apiFetch(`${getApiBase()}/reports/monthly/?${params}`);
-      setMonthlyReports(data.results ?? data);
-      setMonthlyTotal(data.count ?? data.length);
-    } catch (e) { console.error(e); }
-    finally { setMonthlyLoading(false); }
-  }, [yearFilter]);
-
-  const loadYearly = useCallback(async () => {
-    setYearlyLoading(true);
-    try {
-      const data = await apiFetch(`${getApiBase()}/reports/yearly/`);
-      setYearlyReports(data.results ?? data);
-    } catch (e) { console.error(e); }
-    finally { setYearlyLoading(false); }
-  }, []);
-
-  useEffect(() => { loadMonthly(); }, [loadMonthly]);
-  useEffect(() => { loadYearly(); }, [loadYearly]);
 
   /* ── Create ──────────────────────────────────────────── */
   const openCreate = (type: "monthly" | "yearly") => {
@@ -116,7 +103,7 @@ export default function ReportsPage() {
         { method: "POST", body: JSON.stringify(payload) }
       );
       setModalOpen(false);
-      modalType === "monthly" ? loadMonthly() : loadYearly();
+      modalType === "monthly" ? refreshMonthly() : refreshYearly();
     } catch (err: any) {
       setError(err.message ?? "Failed to generate report");
     } finally { setSaving(false); }
@@ -127,7 +114,7 @@ export default function ReportsPage() {
     setRecalcId(id);
     try {
       await apiFetch(`${getApiBase()}/reports/${type}/${id}/recalculate/`, { method: "POST" });
-      type === "monthly" ? loadMonthly() : loadYearly();
+      type === "monthly" ? refreshMonthly() : refreshYearly();
     } catch (e) { console.error(e); }
     finally { setRecalcId(null); }
   };
@@ -141,7 +128,7 @@ export default function ReportsPage() {
         { method: "DELETE" }
       );
       setDeleteTarget(null);
-      deleteTarget.type === "monthly" ? loadMonthly() : loadYearly();
+      deleteTarget.type === "monthly" ? refreshMonthly() : refreshYearly();
     } catch (e) { console.error(e); }
   };
 

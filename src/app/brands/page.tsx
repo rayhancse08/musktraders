@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { Pagination } from "@/components/inventory/pagination";
 import {
@@ -18,14 +19,21 @@ import { Modal } from "@/components/inventory/modal";
 import { apiFetch } from "@/lib/apiFetch";
 import { getApiBase } from "@/lib/api-config";
 import { Brand, BrandFormData } from "@/types/brand";
+import { brandKeys, useBrands } from "@/hooks/useBrands";
 
 const EMPTY_FORM: BrandFormData = { name: "" };
 
 export default function BrandPage() {
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [total, setTotal] = useState(0);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+
+  const { data, isLoading } = useBrands({ search, page });
+  const brands = data?.results ?? [];
+  const total = data?.count ?? 0;
+  const loading = isLoading && !data;
+
+  const refreshBrands = () => queryClient.invalidateQueries({ queryKey: brandKeys.all() });
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Brand | null>(null);
@@ -33,25 +41,6 @@ export default function BrandPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const loadBrands = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    params.set("page", String(page));
-    setLoading(true);
-    try {
-      const data = await apiFetch(`${getApiBase()}/brands/?${params}`);
-      setBrands(data.results ?? data);
-      setTotal(data.count ?? data.length);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, [search, page]);
-
-  useEffect(() => { loadBrands(); }, [loadBrands]);
 
   const openCreate = () => {
     setEditTarget(null);
@@ -87,7 +76,7 @@ export default function BrandPage() {
         });
       }
       setModalOpen(false);
-      loadBrands();
+      refreshBrands();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save brand");
     } finally {
@@ -99,7 +88,7 @@ export default function BrandPage() {
     try {
       await apiFetch(`${getApiBase()}/brands/${id}/`, { method: "DELETE" });
       setDeleteId(null);
-      loadBrands();
+      refreshBrands();
     } catch (e) {
       console.error(e);
     }

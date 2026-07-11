@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { apiFetch } from "@/lib/apiFetch";
 import { getApiBase } from "@/lib/api-config";
@@ -8,6 +9,7 @@ import { Purchase, PurchaseDetail, PurchaseFormData } from "@/types/purchase";
 import PurchaseTable from "@/components/Purchases/PurchaseTable";
 import PurchaseCreateModal from "@/components/Purchases/PurchaseCreateModal";
 import PurchaseDetailModal from "@/components/Purchases/PurchaseDetailModal";
+import { purchaseKeys, usePurchases } from "@/hooks/usePurchases";
 
 const EMPTY_FORM: PurchaseFormData = {
   date: new Date().toISOString().slice(0, 10),
@@ -30,10 +32,16 @@ const EMPTY_FORM: PurchaseFormData = {
 };
 
 export default function PurchasesPage() {
-  const [purchases, setPurchases] = useState<Purchase[]>([]);
-  const [total, setTotal] = useState(0);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+
+  const { data, isLoading } = usePurchases({ search, page });
+  const purchases = data?.results ?? [];
+  const total = data?.count ?? 0;
+  const loading = isLoading && !data;
+
+  const refreshPurchases = () => queryClient.invalidateQueries({ queryKey: purchaseKeys.all() });
 
   const [createOpen, setCreateOpen] = useState(false);
   const [formData, setFormData] = useState<PurchaseFormData>(EMPTY_FORM);
@@ -44,25 +52,6 @@ export default function PurchasesPage() {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const loadPurchases = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    params.set("page", String(page));
-    setLoading(true);
-    try {
-      const data = await apiFetch(`${getApiBase()}/purchases/?${params}`);
-      setPurchases(data.results ?? data);
-      setTotal(data.count ?? data.length);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, [search, page]);
-
-  useEffect(() => { loadPurchases(); }, [loadPurchases]);
 
   const openDetail = async (id: number) => {
     setDetailLoading(true);
@@ -87,7 +76,7 @@ export default function PurchasesPage() {
       });
       setCreateOpen(false);
       setFormData(EMPTY_FORM);
-      loadPurchases();
+      refreshPurchases();
     } catch (err: any) {
       setError(err.message ?? "Failed to create purchases");
     } finally {
@@ -133,7 +122,7 @@ export default function PurchasesPage() {
       });
 
       await openDetail(purchaseId);
-      await loadPurchases();
+      await refreshPurchases();
     } catch (err: any) {
       setError(err.message ?? "Failed to update purchase");
     } finally {

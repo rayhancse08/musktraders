@@ -8,33 +8,15 @@ import {
 } from "@/components/ui/dropdown";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOutIcon, SettingsIcon, UserIcon } from "./icons";
 import { useAuth } from "@/components/AuthProvider";
 
-type User = {
-  username: string;
-  email: string;
-};
-
 export function UserInfo() {
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
-
-  useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
-    } catch {
-      setUser(null);
-    }
-  }, []);
-
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
     logout();

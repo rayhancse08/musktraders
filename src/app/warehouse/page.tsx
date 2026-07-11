@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { Modal } from "@/components/inventory/modal";
 import { Pagination } from "@/components/inventory/pagination";
@@ -17,6 +18,7 @@ import {
   WarehouseItemDetail,
   WarehouseItemFormData,
 } from "@/types/warehouse";
+import { warehouseKeys, useWarehouseItems } from "@/hooks/useWarehouse";
 
 const EMPTY_FORM: WarehouseItemFormData = {
   product: "",
@@ -66,11 +68,17 @@ function StockBar({ remaining, stocked }: { remaining: number | null; stocked: n
 type ProductOption = { id: number; name: string; packet_per_carton: number };
 
 export default function WarehousePage() {
-  const [items, setItems] = useState<WarehouseItem[]>([]);
-  const [total, setTotal] = useState(0);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [lotFilter, setLotFilter] = useState("");
   const [page, setPage] = useState(1);
+
+  const { data, isLoading } = useWarehouseItems({ search, lotFilter, page });
+  const items = data?.results ?? [];
+  const total = data?.count ?? 0;
+  const loading = isLoading && !data;
+
+  const refreshItems = () => queryClient.invalidateQueries({ queryKey: warehouseKeys.all() });
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<WarehouseItemDetail | null>(null);
@@ -85,23 +93,6 @@ export default function WarehousePage() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [productSearch, setProductSearch] = useState("");
   const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const loadItems = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (lotFilter) params.set("lot_number__icontains", lotFilter);
-    params.set("page", String(page));
-    setLoading(true);
-    try {
-      const data = await apiFetch(`${getApiBase()}/warehouse/?${params}`);
-      setItems(data.results ?? data);
-      setTotal(data.count ?? data.length);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  }, [search, lotFilter, page]);
-
-  useEffect(() => { loadItems(); }, [loadItems]);
 
   const openDetail = async (id: number) => {
     setDetailLoading(true);
@@ -175,7 +166,7 @@ export default function WarehousePage() {
         });
       }
       setModalOpen(false);
-      loadItems();
+      refreshItems();
     } catch (err: any) {
       setError(err.message ?? "Failed to save");
     } finally { setSaving(false); }
@@ -185,7 +176,7 @@ export default function WarehousePage() {
     try {
       await apiFetch(`${getApiBase()}/warehouse/${id}/`, { method: "DELETE" });
       setDeleteId(null);
-      loadItems();
+      refreshItems();
     } catch (e) { console.error(e); }
   };
 

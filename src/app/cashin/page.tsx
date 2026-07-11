@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { apiFetch } from "@/lib/apiFetch";
 import { getApiBase } from "@/lib/api-config";
@@ -10,6 +11,12 @@ import {
   CashInItemFormData, MonthlyCashInFileFormData,
   MONTHS,
 } from "@/types/cashin";
+import {
+  cashInKeys,
+  useCashInCategories,
+  useCashInCompanies,
+  useCashInMonthlyFiles,
+} from "@/hooks/useCashIn";
 
 const d4 = (v: string | number) =>
   String(parseFloat(String(v || 0)).toFixed(4));
@@ -95,58 +102,17 @@ function NameTile({ name, created, onEdit, onDelete }: { name: string; created: 
 
 // ════════════════════════════════════════════════════════════════════════════
 export default function CashInPage() {
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<"files" | "categories">("files");
 
   // ── Categories ────────────────────────────────────────────────────────────
-  const [categories, setCategories] = useState<CashInCategory[]>([]);
   const [catSearch, setCatSearch] = useState("");
   const [catModal, setCatModal] = useState<{ open: boolean; id?: number; value: string; error: string | null; saving: boolean }>
   ({ open: false, value: "", error: null, saving: false });
   const [catDeleteId, setCatDeleteId] = useState<number | null>(null);
 
-  const loadCategories = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (catSearch) params.set("search", catSearch);
-    const data = await apiFetch(`${getApiBase()}/cashin/categories/?${params}`);
-    setCategories(data.results ?? data);
-  }, [catSearch]);
-
-  useEffect(() => { loadCategories(); }, [loadCategories]);
-
-  const saveCat = async () => {
-    if (!catModal.value.trim()) { setCatModal((p) => ({ ...p, error: "Name is required." })); return; }
-    setCatModal((p) => ({ ...p, saving: true, error: null }));
-    try {
-      if (catModal.id) {
-        await apiFetch(`${getApiBase()}/cashin/categories/${catModal.id}/`, { method: "PATCH", body: JSON.stringify({ name: catModal.value }) });
-      } else {
-        await apiFetch(`${getApiBase()}/cashin/categories/`, { method: "POST", body: JSON.stringify({ name: catModal.value }) });
-      }
-      setCatModal({ open: false, value: "", error: null, saving: false });
-      loadCategories();
-    } catch (e: any) { setCatModal((p) => ({ ...p, saving: false, error: e.message ?? "Failed" })); }
-  };
-
-  const deleteCat = async (id: number) => {
-    await apiFetch(`${getApiBase()}/cashin/categories/${id}/`, { method: "DELETE" });
-    setCatDeleteId(null); loadCategories();
-  };
-
-  // ── Companies (shared from TaxCompany) ───────────────────────────────────
-  const [companies, setCompanies] = useState<{ id: number; name: string }[]>([]);
-
-  const loadCompanies = useCallback(async () => {
-    const data = await apiFetch(`${getApiBase()}/tax/companies/`);
-    setCompanies(data.results ?? data);
-  }, []);
-
-  useEffect(() => { loadCompanies().catch(console.error); }, [loadCompanies]);
-
   // ── Monthly Cash-In Files ─────────────────────────────────────────────────
-  const [files, setFiles] = useState<MonthlyCashInFile[]>([]);
-  const [filesTotal, setFilesTotal] = useState(0);
   const [filesYear, setFilesYear] = useState(String(currentYear));
-  const [filesLoading, setFilesLoading] = useState(false);
 
   const [fileModal, setFileModal] = useState(false);
   const [fileForm, setFileForm] = useState<MonthlyCashInFileFormData>({
@@ -162,12 +128,10 @@ export default function CashInPage() {
   const [newCompanySaving, setNewCompanySaving] = useState(false);
   const [newCompanyError, setNewCompanyError] = useState<string | null>(null);
 
-  // Detail modal
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailFile, setDetailFile] = useState<MonthlyCashInFileDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // Item modal
   const [itemModal, setItemModal] = useState(false);
   const [itemEditId, setItemEditId] = useState<number | null>(null);
   const [itemForm, setItemForm] = useState<CashInItemFormData>({ cash_in_category: "", date: "", amount: "", notes: "" });
@@ -175,19 +139,38 @@ export default function CashInPage() {
   const [itemError, setItemError] = useState<string | null>(null);
   const [itemDeleteId, setItemDeleteId] = useState<number | null>(null);
 
-  const loadFiles = useCallback(async () => {
-    setFilesLoading(true);
-    const params = new URLSearchParams();
-    if (filesYear) params.set("year", filesYear);
-    try {
-      const data = await apiFetch(`${getApiBase()}/cashin/monthly-files/?${params}`);
-      setFiles(data.results ?? data);
-      setFilesTotal(data.count ?? data.length);
-    } catch (e) { console.error(e); }
-    finally { setFilesLoading(false); }
-  }, [filesYear]);
+  const { data: categories = [] } = useCashInCategories(
+    catSearch,
+    tab === "categories" || itemModal
+  );
+  const { data: companies = [] } = useCashInCompanies(fileModal);
+  const { data: filesData, isLoading: filesIsLoading } = useCashInMonthlyFiles(
+    filesYear,
+    tab === "files"
+  );
+  const files = filesData?.results ?? [];
+  const filesTotal = filesData?.count ?? 0;
+  const filesLoading = filesIsLoading && !filesData;
 
-  useEffect(() => { loadFiles(); }, [loadFiles]);
+  const saveCat = async () => {
+    if (!catModal.value.trim()) { setCatModal((p) => ({ ...p, error: "Name is required." })); return; }
+    setCatModal((p) => ({ ...p, saving: true, error: null }));
+    try {
+      if (catModal.id) {
+        await apiFetch(`${getApiBase()}/cashin/categories/${catModal.id}/`, { method: "PATCH", body: JSON.stringify({ name: catModal.value }) });
+      } else {
+        await apiFetch(`${getApiBase()}/cashin/categories/`, { method: "POST", body: JSON.stringify({ name: catModal.value }) });
+      }
+      setCatModal({ open: false, value: "", error: null, saving: false });
+      queryClient.invalidateQueries({ queryKey: cashInKeys.categories() });
+    } catch (e: any) { setCatModal((p) => ({ ...p, saving: false, error: e.message ?? "Failed" })); }
+  };
+
+  const deleteCat = async (id: number) => {
+    await apiFetch(`${getApiBase()}/cashin/categories/${id}/`, { method: "DELETE" });
+    setCatDeleteId(null);
+    queryClient.invalidateQueries({ queryKey: cashInKeys.categories() });
+  };
 
   const loadDetail = async (id: number) => {
     setDetailLoading(true);
@@ -214,7 +197,7 @@ export default function CashInPage() {
       setShowNewCompany(false);
       setNewCompanyName("");
       setNewCompanyError(null);
-      loadFiles();
+      queryClient.invalidateQueries({ queryKey: cashInKeys.files(filesYear) });
     } catch (e: any) { setFileError(e.message ?? "Failed"); }
     finally { setFileSaving(false); }
   };
@@ -231,7 +214,7 @@ export default function CashInPage() {
         method: "POST",
         body: JSON.stringify({ name: newCompanyName.trim() }),
       });
-      await loadCompanies();
+      await queryClient.invalidateQueries({ queryKey: cashInKeys.companies() });
       setFileForm((p) => ({ ...p, company_name: String(created.id) }));
       setShowNewCompany(false);
       setNewCompanyName("");
@@ -244,7 +227,8 @@ export default function CashInPage() {
 
   const deleteFile = async (id: number) => {
     await apiFetch(`${getApiBase()}/cashin/monthly-files/${id}/`, { method: "DELETE" });
-    setFileDeleteId(null); loadFiles();
+    setFileDeleteId(null);
+    queryClient.invalidateQueries({ queryKey: cashInKeys.files(filesYear) });
   };
 
   // ── Cash-In Items ─────────────────────────────────────────────────────────
