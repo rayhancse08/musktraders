@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const ADMIN_EMAILS = ["admin@nextera.com", "admin@kdelight.com"];
+const ADMIN_EMAILS = ["admin@musktraders.com", "admin@nextera.com", "admin@kdelight.com"];
 
 async function main() {
   console.log("Resetting all data except admin user...");

@@ -1,4 +1,4 @@
-# Order Inventory Solution
+# Musk Traders Inventory Solution
 
 Full-stack **Next.js 16** order & inventory management system with **Prisma** + **PostgreSQL**.
 
@@ -56,7 +56,7 @@ Open [http://localhost:3000/login](http://localhost:3000/login)
 
 | Email | Password |
 |-------|----------|
-| admin@nextera.com | admin123 |
+| admin@musktraders.com | admin123 |
 
 ## Environment Variables
 

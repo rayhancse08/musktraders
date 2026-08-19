@@ -1,11 +1,11 @@
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="nextera-icon-gradient" x1="4" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+    <linearGradient id="musk-traders-icon-gradient" x1="4" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
       <stop stop-color="#4F46E5"/>
       <stop offset="1" stop-color="#7C3AED"/>
     </linearGradient>
   </defs>
-  <rect x="1" y="1" width="30" height="30" rx="8" fill="url(#nextera-icon-gradient)"/>
+  <rect x="1" y="1" width="30" height="30" rx="8" fill="url(#musk-traders-icon-gradient)"/>
   <path d="M8 10H11V18.5L17 10H20V22H17V13.5L11 22H8V10Z" fill="white"/>
   <path d="M21 14H25V16H23V22H21V14Z" fill="white" fill-opacity="0.9"/>
   <rect x="23" y="18" width="4" height="4" rx="1" stroke="white" stroke-width="1.2" fill="none"/>

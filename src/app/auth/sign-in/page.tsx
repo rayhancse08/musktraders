@@ -27,14 +27,14 @@ export default function SignIn() {
                 <Image
                   className="hidden dark:block"
                   src={"/images/logo/logo.svg"}
-                  alt="Nextera Inventory Solution logo"
+                  alt="Musk Traders Inventory Solution logo"
                   width={176}
                   height={32}
                 />
                 <Image
                   className="dark:hidden"
                   src={"/images/logo/logo-dark.svg"}
-                  alt="Nextera Inventory Solution logo"
+                  alt="Musk Traders Inventory Solution logo"
                   width={176}
                   height={32}
                 />

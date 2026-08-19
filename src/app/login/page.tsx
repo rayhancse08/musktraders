@@ -43,8 +43,8 @@ export default function LoginPage() {
       <div className="relative hidden w-1/2 flex-col justify-between p-12 lg:flex">
         <Image
           src="/images/logo/logo.svg"
-          alt="Nextera Inventory Solution logo"
-          width={240}
+          alt="Musk Traders Inventory Solution logo"
+          width={280}
           height={44}
           className="h-11 w-auto"
           priority
@@ -84,7 +84,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="text-sm text-slate-500">© 2026 Nextera Inventory Solution</p>
+        <p className="text-sm text-slate-500">© 2026 Musk Traders Inventory Solution</p>
       </div>
 
       <div className="relative flex w-full items-center justify-center p-6 lg:w-1/2 lg:p-12">
@@ -92,8 +92,8 @@ export default function LoginPage() {
           <div className="mb-8 lg:hidden">
             <Image
               src="/images/logo/logo-dark.svg"
-              alt="Nextera Inventory Solution logo"
-              width={220}
+              alt="Musk Traders Inventory Solution logo"
+              width={280}
               height={40}
               className="h-10 w-auto"
               priority
@@ -118,7 +118,7 @@ export default function LoginPage() {
                 <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
                   type="email"
-                  placeholder="admin@nextera.com"
+                  placeholder="admin@musktraders.com"
                   className="input-modern pl-10"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -155,7 +155,7 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-6 text-center text-xs text-slate-400">
-            Demo: admin@nextera.com / admin123
+            Demo: admin@musktraders.com / admin123
           </p>
         </div>
       </div>

@@ -71,7 +71,7 @@ export function Header() {
               {pageTitle}
             </h1>
             <p className="hidden truncate text-sm text-slate-500 sm:block">
-              Nextera Inventory Solution
+              Musk Traders Inventory Solution
             </p>
           </div>
         </div>

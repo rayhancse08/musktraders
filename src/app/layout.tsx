@@ -13,8 +13,8 @@ import Providers from "./providers";
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | Nextera Inventory Solution",
-    default: "Nextera Inventory Solution — Order & Inventory",
+    template: "%s | Musk Traders Inventory Solution",
+    default: "Musk Traders Inventory Solution — Order & Inventory",
   },
   description: "Modern order and inventory management system",
 };

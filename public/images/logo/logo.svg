@@ -1,14 +1,14 @@
-<svg width="240" height="40" viewBox="0 0 240 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="280" height="40" viewBox="0 0 280 40" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="nextera-logo-gradient" x1="4" y1="4" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+    <linearGradient id="musk-traders-logo-gradient" x1="4" y1="4" x2="36" y2="36" gradientUnits="userSpaceOnUse">
       <stop stop-color="#4F46E5"/>
       <stop offset="1" stop-color="#7C3AED"/>
     </linearGradient>
   </defs>
-  <rect x="2" y="4" width="32" height="32" rx="8" fill="url(#nextera-logo-gradient)"/>
+  <rect x="2" y="4" width="32" height="32" rx="8" fill="url(#musk-traders-logo-gradient)"/>
   <path d="M9 13H12V21.5L18 13H21V25H18V16.5L12 25H9V13Z" fill="white"/>
   <path d="M22 17H26V19H24V25H22V17Z" fill="white" fill-opacity="0.9"/>
   <rect x="24" y="21" width="4" height="4" rx="1" stroke="white" stroke-width="1.2" fill="none"/>
-  <text x="44" y="18" fill="white" font-family="Inter, Segoe UI, sans-serif" font-size="15" font-weight="700">Nextera</text>
+  <text x="44" y="18" fill="white" font-family="Inter, Segoe UI, sans-serif" font-size="15" font-weight="700">Musk Traders</text>
   <text x="44" y="32" fill="#C7D2FE" font-family="Inter, Segoe UI, sans-serif" font-size="10" font-weight="500">Inventory Solution</text>
 </svg>

@@ -7,19 +7,26 @@ async function main() {
   console.log("Seeding database...");
 
   const passwordHash = await bcrypt.hash("admin123", 12);
-  const existingOld = await prisma.user.findUnique({ where: { email: "admin@kdelight.com" } });
-  if (existingOld) {
-    await prisma.user.update({
-      where: { id: existingOld.id },
-      data: { email: "admin@nextera.com", passwordHash },
-    });
+  const targetEmail = "admin@musktraders.com";
+  const existingTarget = await prisma.user.findUnique({ where: { email: targetEmail } });
+  if (!existingTarget) {
+    for (const email of ["admin@nextera.com", "admin@kdelight.com"]) {
+      const existingOld = await prisma.user.findUnique({ where: { email } });
+      if (existingOld) {
+        await prisma.user.update({
+          where: { id: existingOld.id },
+          data: { email: targetEmail, passwordHash },
+        });
+        break;
+      }
+    }
   }
   const admin = await prisma.user.upsert({
-    where: { email: "admin@nextera.com" },
+    where: { email: targetEmail },
     update: { passwordHash },
     create: {
       username: "admin",
-      email: "admin@nextera.com",
+      email: targetEmail,
       passwordHash,
     },
   });
@@ -191,7 +198,7 @@ async function main() {
   });
 
   console.log("Seed completed successfully!");
-  console.log("Login: admin@nextera.com / admin123");
+  console.log("Login: admin@musktraders.com / admin123");
 }
 
 main()

@@ -175,7 +175,7 @@ export function Sidebar() {
 
           <div className="border-t border-slate-800/80 p-4">
             <div className="rounded-xl bg-slate-900/80 px-3 py-3">
-              <p className="text-xs font-medium text-slate-300">Nextera Inventory</p>
+              <p className="text-xs font-medium text-slate-300">Musk Traders Inventory</p>
               <p className="mt-0.5 text-[11px] text-slate-500">Order & warehouse management</p>
             </div>
           </div>
