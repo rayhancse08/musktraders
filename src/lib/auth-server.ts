@@ -64,3 +64,23 @@ export async function authenticateUser(email: string, password: string) {
     refresh,
   };
 }
+
+export async function changePassword(
+  userId: number,
+  currentPassword: string,
+  newPassword: string
+): Promise<{ ok: true } | { ok: false; reason: "not_found" | "invalid_current" }> {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return { ok: false, reason: "not_found" };
+
+  const valid = await verifyPassword(currentPassword, user.passwordHash);
+  if (!valid) return { ok: false, reason: "invalid_current" };
+
+  const passwordHash = await hashPassword(newPassword);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash },
+  });
+
+  return { ok: true };
+}

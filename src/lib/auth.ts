@@ -7,3 +7,14 @@ export async function loginUser(email: string, password: string) {
     body: JSON.stringify({ email, password }),
   });
 }
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+  confirmPassword: string
+) {
+  return apiFetch(apiPath("profile/password"), {
+    method: "POST",
+    body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+  });
+}
