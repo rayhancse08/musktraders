@@ -98,7 +98,7 @@ export async function listProducts(params: { search?: string; category?: string;
     prisma.product.findMany({
       where,
       include: { brand: true, category: true },
-      orderBy: { id: "desc" },
+      orderBy: { name: "asc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),

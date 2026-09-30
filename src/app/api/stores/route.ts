@@ -12,7 +12,7 @@ export const GET = withAuth(async (req: NextRequest) => {
   if (search) where.name = { contains: search, mode: "insensitive" };
 
   const [items, count] = await Promise.all([
-    prisma.store.findMany({ where, orderBy: { id: "desc" }, skip: (page - 1) * pageSize, take: pageSize }),
+    prisma.store.findMany({ where, orderBy: { name: "asc" }, skip: (page - 1) * pageSize, take: pageSize }),
     prisma.store.count({ where }),
   ]);
   return ok({ results: items.map(serializeStore), count });

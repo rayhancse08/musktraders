@@ -16,7 +16,7 @@ export const GET = withAuth(async (req: NextRequest) => {
   if (search) where.name = { contains: search, mode: "insensitive" };
 
   const [items, count] = await Promise.all([
-    prisma.brand.findMany({ where, orderBy: { id: "desc" }, skip: (page - 1) * pageSize, take: pageSize }),
+    prisma.brand.findMany({ where, orderBy: { name: "asc" }, skip: (page - 1) * pageSize, take: pageSize }),
     prisma.brand.count({ where }),
   ]);
   return ok({ results: items.map(serializeBrand), count });
