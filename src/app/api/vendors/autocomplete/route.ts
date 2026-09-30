@@ -1,16 +1,19 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withAuth, ok } from "@/lib/route-handler";
-import { getPage, notDeleted } from "@/lib/api-utils";
+import { getPage } from "@/lib/api-utils";
+import { idsSortedByName, inSortedOrder } from "@/lib/name-order";
 
 export const GET = withAuth(async (req: NextRequest) => {
   const page = getPage(req);
-  const items = await prisma.vendor.findMany({
-    where: notDeleted(),
-    orderBy: { name: "asc" },
-    skip: (page - 1) * 20,
-    take: 20,
-    select: { id: true, name: true },
-  });
-  return ok({ results: items, count: items.length });
+  const pageSize = 20;
+  const ids = await idsSortedByName("vendors", { skip: (page - 1) * pageSize, take: pageSize });
+  const items = ids.length
+    ? await prisma.vendor.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const ordered = inSortedOrder(ids, items);
+  return ok({ results: ordered, count: ordered.length });
 });

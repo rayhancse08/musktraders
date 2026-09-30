@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withAuth, ok, created } from "@/lib/route-handler";
 import { getPage, getSearch, notDeleted, parseJson } from "@/lib/api-utils";
 import { isoDate } from "@/lib/services/helpers";
+import { idsSortedByName, inSortedOrder } from "@/lib/name-order";
 
 function serializeBrand(b: { id: number; name: string; createdAt: Date; updatedAt: Date }) {
   return { id: b.id, name: b.name, created: isoDate(b.createdAt), updated: isoDate(b.updatedAt) };
@@ -15,11 +16,15 @@ export const GET = withAuth(async (req: NextRequest) => {
   const where: Record<string, unknown> = { ...notDeleted() };
   if (search) where.name = { contains: search, mode: "insensitive" };
 
-  const [items, count] = await Promise.all([
-    prisma.brand.findMany({ where, orderBy: { name: "asc" }, skip: (page - 1) * pageSize, take: pageSize }),
+  const skip = (page - 1) * pageSize;
+  const [ids, count] = await Promise.all([
+    idsSortedByName("brands", { search, skip, take: pageSize }),
     prisma.brand.count({ where }),
   ]);
-  return ok({ results: items.map(serializeBrand), count });
+  const items = ids.length
+    ? await prisma.brand.findMany({ where: { id: { in: ids } } })
+    : [];
+  return ok({ results: inSortedOrder(ids, items).map(serializeBrand), count });
 });
 
 export const POST = withAuth(async (req: NextRequest) => {

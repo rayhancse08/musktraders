@@ -1,5 +1,6 @@
 import { prisma } from "../prisma";
 import { notDeleted, slugify } from "../api-utils";
+import { idsSortedByName, inSortedOrder } from "../name-order";
 import { dec, decOrNull, dateStr, isoDate } from "./helpers";
 import type { Product, Brand, ProductCategory } from "@prisma/client";
 
@@ -94,30 +95,33 @@ export async function listProducts(params: { search?: string; category?: string;
     where.categoryId = parseInt(params.category, 10);
   }
 
-  const [items, count] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      include: { brand: true, category: true },
-      orderBy: { name: "asc" },
-      skip: (page - 1) * pageSize,
+  const categoryId = params.category ? parseInt(params.category, 10) : undefined;
+  const skip = (page - 1) * pageSize;
+  const [ids, count] = await Promise.all([
+    idsSortedByName("products", {
+      search: params.search,
+      categoryId: categoryId != null && !Number.isNaN(categoryId) ? categoryId : undefined,
+      skip,
       take: pageSize,
     }),
     prisma.product.count({ where }),
   ]);
+  const items = ids.length
+    ? await prisma.product.findMany({
+        where: { id: { in: ids } },
+        include: { brand: true, category: true },
+      })
+    : [];
 
-  return { results: items.map(serializeProduct), count };
+  return { results: inSortedOrder(ids, items).map(serializeProduct), count };
 }
 
 export async function autocompleteProducts(q: string) {
-  const items = await prisma.product.findMany({
-    where: {
-      ...notDeleted(),
-      name: { contains: q, mode: "insensitive" },
-    },
-    take: 20,
-    orderBy: { name: "asc" },
-  });
-  return items.map((p) => ({
+  const ids = await idsSortedByName("products", { search: q, take: 20 });
+  const items = ids.length
+    ? await prisma.product.findMany({ where: { id: { in: ids } } })
+    : [];
+  return inSortedOrder(ids, items).map((p) => ({
     id: p.id,
     name: p.name,
     stocked_quantity: p.stockedQuantity ?? 0,
@@ -139,12 +143,14 @@ export function serializeCategory(c: ProductCategory & { _count?: { products: nu
 }
 
 export async function listCategories() {
-  const items = await prisma.productCategory.findMany({
-    where: notDeleted(),
-    include: { _count: { select: { products: { where: notDeleted() } } } },
-    orderBy: { name: "asc" },
-  });
-  return items.map(serializeCategory);
+  const ids = await idsSortedByName("product_categories");
+  const items = ids.length
+    ? await prisma.productCategory.findMany({
+        where: { id: { in: ids } },
+        include: { _count: { select: { products: { where: notDeleted() } } } },
+      })
+    : [];
+  return inSortedOrder(ids, items).map(serializeCategory);
 }
 
 export async function createProductFromForm(fd: FormData) {

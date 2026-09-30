@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withAuth, ok, created } from "@/lib/route-handler";
 import { getPage, getSearch, notDeleted, parseJson } from "@/lib/api-utils";
 import { serializeStore } from "@/lib/services/common-service";
+import { idsSortedByName, inSortedOrder } from "@/lib/name-order";
 
 export const GET = withAuth(async (req: NextRequest) => {
   const page = getPage(req);
@@ -11,11 +12,15 @@ export const GET = withAuth(async (req: NextRequest) => {
   const where: Record<string, unknown> = { ...notDeleted() };
   if (search) where.name = { contains: search, mode: "insensitive" };
 
-  const [items, count] = await Promise.all([
-    prisma.store.findMany({ where, orderBy: { name: "asc" }, skip: (page - 1) * pageSize, take: pageSize }),
+  const skip = (page - 1) * pageSize;
+  const [ids, count] = await Promise.all([
+    idsSortedByName("stores", { search, skip, take: pageSize }),
     prisma.store.count({ where }),
   ]);
-  return ok({ results: items.map(serializeStore), count });
+  const items = ids.length
+    ? await prisma.store.findMany({ where: { id: { in: ids } } })
+    : [];
+  return ok({ results: inSortedOrder(ids, items).map(serializeStore), count });
 });
 
 export const POST = withAuth(async (req: NextRequest) => {
