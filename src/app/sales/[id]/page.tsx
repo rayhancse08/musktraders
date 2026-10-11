@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { apiFetch } from "@/lib/apiFetch";
@@ -114,6 +115,15 @@ export default function SaleDetailPage() {
   return (
     <>
       <Breadcrumb pageName={`Sale #${sale.order_no || sale.id}`} />
+
+      <div className="mb-4 flex justify-end">
+        <Link
+          href={`/sales/${sale.id}/invoice`}
+          className="rounded-lg bg-[#0F3D3A] px-4 py-2 text-sm font-medium text-white"
+        >
+          View invoice
+        </Link>
+      </div>
 
       {/* Header card */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">

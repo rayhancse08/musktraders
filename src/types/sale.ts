@@ -9,6 +9,10 @@ export type Sale = {
   status: SaleStatus;
   store: number;
   store_name: string;
+  store_city?: string | null;
+  store_address?: string | null;
+  store_phone?: string | null;
+  store_email?: string | null;
   billing_company_name: string | null;
   sub_total: string;
   discount: string;

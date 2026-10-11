@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { apiFetch } from "@/lib/apiFetch";
 import { getApiBase } from "@/lib/api-config";
 import {
@@ -32,7 +33,7 @@ const EMPTY_ITEM: SaleItemFormData = {
 const fmtMoney = (v: string | number | null | undefined) => {
   const n = Number(v ?? 0);
   return Number.isFinite(n)
-    ? "৳" + n.toLocaleString("en-BD", { minimumFractionDigits: 2 })
+    ? "$" + n.toLocaleString("en-BD", { minimumFractionDigits: 2 })
     : "—";
 };
 
@@ -277,6 +278,14 @@ export default function SaleDetailModal({
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {sale && (
+              <Link
+                href={`/sales/${sale.id}/invoice`}
+                className="rounded-lg border border-[#0F3D3A] px-3 py-1.5 text-sm font-medium text-[#0F3D3A] hover:bg-[#0F3D3A] hover:text-white"
+              >
+                Invoice
+              </Link>
+            )}
             {sale && (
               <select
                 className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400"

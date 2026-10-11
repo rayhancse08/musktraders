@@ -140,9 +140,8 @@ export default function SaleCreateModal({
   const disc  = formData.discount_type === "percentage" ? subTotal * dAmt / 100 : dAmt;
   const total = subTotal - disc + ship;
 
-  // FIX 4: currency symbol ৳ not $
   const fmt = (v: number) =>
-    "৳" + v.toLocaleString("en-BD", { minimumFractionDigits: 2 });
+    "$" + v.toLocaleString("en-BD", { minimumFractionDigits: 2 });
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center py-8 overflow-y-auto px-4 mt-20">

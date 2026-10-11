@@ -368,7 +368,7 @@ export default function ProductsPage() {
                       <td>
                         {p.discount ? (
                           <span className="badge bg-red-50 text-red-700">
-                            {p.discount_type === "percentage" ? `-${p.discount}%` : `-৳${p.discount}`}
+                            {p.discount_type === "percentage" ? `-${p.discount}%` : `-$${p.discount}`}
                           </span>
                         ) : (
                           <span className="text-slate-400">—</span>
@@ -560,7 +560,7 @@ export default function ProductsPage() {
                       <div className="flex items-center gap-2 text-sm">
                         <span className="text-gray-500">Discount:</span>
                         <span className="font-medium text-red-600">
-                          {detailProduct.discount_type === "percentage" ? `${detailProduct.discount}%` : `৳${detailProduct.discount}`}
+                          {detailProduct.discount_type === "percentage" ? `${detailProduct.discount}%` : `$${detailProduct.discount}`}
                         </span>
                         <span className="text-gray-400">→ Discounted price:</span>
                         <span className="font-mono font-semibold text-emerald-700">{fmt(detailProduct.discount_price)}</span>
@@ -659,7 +659,7 @@ export default function ProductsPage() {
                 </div>
 
                 <div>
-                  <FormLabel>Discount {productForm.discount_type === "percentage" ? "(%)" : "(৳)"}</FormLabel>
+                  <FormLabel>Discount {productForm.discount_type === "percentage" ? "(%)" : "($)"}</FormLabel>
                   <FormInput type="number" placeholder="0" value={productForm.discount} onChange={(e) => setField("discount", e.target.value)} />
                 </div>
 

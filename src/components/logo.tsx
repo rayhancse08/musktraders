@@ -5,7 +5,7 @@ export function Logo({ variant = "dark" }: { variant?: "dark" | "light" }) {
   const src = variant === "light" ? "/images/logo/logo.svg" : "/images/logo/logo-dark.svg";
 
   return (
-    <div className={cn("relative", variant === "light" ? "h-9 w-56" : "h-9 w-52")}>
+    <div className={cn("relative h-11 w-[200px]")}>
       <Image
         src={src}
         fill

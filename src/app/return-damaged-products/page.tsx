@@ -22,7 +22,7 @@ import { apiFetch } from "@/lib/apiFetch";
 import { getApiBase } from "@/lib/api-config";
 
 const fmt = (v: string | null | undefined) =>
-  v ? "৳" + parseFloat(v).toLocaleString("en-BD", { minimumFractionDigits: 2 }) : "৳0.00";
+  v ? "$" + parseFloat(v).toLocaleString("en-BD", { minimumFractionDigits: 2 }) : "$0.00";
 
 type ProductOption = { id: number; name: string; stocked_quantity: number };
 

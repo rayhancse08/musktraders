@@ -45,14 +45,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-surface">
-      {user && <Sidebar />}
+    <div className="flex min-h-screen bg-surface print:block print:min-h-0 print:bg-white">
+      {user && (
+        <div className="print:hidden">
+          <Sidebar />
+        </div>
+      )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        {user && <Header />}
+      <div className="flex min-w-0 flex-1 flex-col print:block">
+        {user && (
+          <div className="print:hidden">
+            <Header />
+          </div>
+        )}
 
-        <main className="flex-1 overflow-x-hidden p-4 md:p-6 lg:p-8">
-          <div className="page-container">{children}</div>
+        <main className="flex-1 overflow-x-hidden p-4 md:p-6 lg:p-8 print:overflow-visible print:p-0">
+          <div className="page-container print:max-w-none print:p-0">{children}</div>
         </main>
       </div>
     </div>

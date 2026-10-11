@@ -213,7 +213,7 @@ export default function DashboardPage() {
         <KpiCard
           label="Monthly Profit"
           value={fmtK(kpis.monthly_profit)}
-          sub={`After ৳${(kpis.monthly_wh_cost / 1000).toFixed(1)}K costs`}
+          sub={`After $${(kpis.monthly_wh_cost / 1000).toFixed(1)}K costs`}
           accent="indigo"
           icon={<BarChart3 className="h-5 w-5" />}
         />

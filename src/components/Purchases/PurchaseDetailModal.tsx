@@ -7,7 +7,7 @@ import { PurchaseDetail } from "@/types/purchase";
 
 const fmt = (v: string | number | null | undefined) =>
   v !== null && v !== undefined && v !== ""
-    ? "৳" + Number(v).toLocaleString("en-BD", { minimumFractionDigits: 2 })
+    ? "$" + Number(v).toLocaleString("en-BD", { minimumFractionDigits: 2 })
     : "—";
 
 type ProductOption = {

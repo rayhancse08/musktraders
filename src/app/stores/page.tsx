@@ -166,7 +166,7 @@ export default function StorePage() {
         <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-medium">
           {s.discount_type === "percentage"
               ? `${s.discount}%`
-              : `৳${s.discount}`}
+              : `$${s.discount}`}
           </span>
       ) : (
         <span className="text-gray-400">—</span>
@@ -292,7 +292,7 @@ export default function StorePage() {
 
   <div>
   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-    Discount {formData.discount_type === "percentage" ? "(%)" : "(৳)"}
+    Discount {formData.discount_type === "percentage" ? "(%)" : "($)"}
     </label>
     <input
     type="number" placeholder="0"
