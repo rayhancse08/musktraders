@@ -1,5 +1,6 @@
 import { prisma } from "../prisma";
 import { notDeleted } from "../api-utils";
+import { ApiError } from "../route-handler";
 import { effectiveCartonPrice, purchaseLineTotal, roundTo } from "../purchase-math";
 import { dec, decOrNull, dateStr, isoDate, num } from "./helpers";
 import type { Purchase, PurchaseItem, PurchasePayment, Vendor, Product } from "@prisma/client";
@@ -72,9 +73,13 @@ function parseCbm(item: Record<string, unknown>) {
   return Number.isFinite(raw) ? roundTo(raw, 4) : null;
 }
 
-function purchaseItemData(item: Record<string, unknown>) {
+function purchaseItemData(item: Record<string, unknown>, index: number) {
+  const productId = parseInt(String(item.product ?? ""), 10);
+  if (!Number.isFinite(productId)) {
+    throw new ApiError(`Item ${index + 1}: select a product.`);
+  }
   return {
-    productId: parseInt(item.product as string, 10),
+    productId,
     unitPrice: parseFloat((item.unit_price as string) || "0"),
     cartonPrice: parseCartonPrice(item),
     cbm: parseCbm(item),
@@ -236,11 +241,10 @@ export async function createPurchase(body: Record<string, unknown>) {
 
 export async function updatePurchase(id: number, body: Record<string, unknown>) {
   const items = body.purchase_items as Record<string, unknown>[] | undefined;
-  await prisma.purchaseItem.deleteMany({ where: { purchaseId: id } });
 
   const data: Record<string, unknown> = {};
   const fields: [string, string][] = [
-    ["lot_number", "lotNumber"], ["date", "date"], ["receive_date", "receiveDate"],
+    ["date", "date"], ["receive_date", "receiveDate"],
     ["shipping_cost", "shippingCost"], ["food_quality_control_cost", "foodQualityControlCost"],
     ["container_clearing_cost", "containerClearingCost"], ["lory_shipping_cost", "loryShippingCost"],
     ["labourer_handling_cost", "labourerHandlingCost"], ["warehouse_rent", "warehouseRent"],
@@ -266,6 +270,7 @@ export async function updatePurchase(id: number, body: Record<string, unknown>) 
 
   if (items) {
     data.purchaseItems = {
+      deleteMany: {},
       create: items.map(purchaseItemData),
     };
   }
