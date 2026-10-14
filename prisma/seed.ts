@@ -59,7 +59,7 @@ async function main() {
   const billingCompany = await prisma.billingCompany.upsert({
     where: { id: 1 },
     update: {},
-    create: { name: "KDelight Trading Co." },
+    create: { name: "Musk Traders" },
   });
 
   const vendor = await prisma.vendor.upsert({
@@ -174,7 +174,7 @@ async function main() {
   const taxCompany = await prisma.taxCompany.upsert({
     where: { id: 1 },
     update: {},
-    create: { name: "KDelight Trading Co." },
+    create: { name: "Musk Traders" },
   });
 
   const cashInCategories = await Promise.all([

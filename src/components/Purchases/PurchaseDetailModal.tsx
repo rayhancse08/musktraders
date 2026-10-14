@@ -1,14 +1,168 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { apiFetch } from "@/lib/apiFetch";
 import { getApiBase } from "@/lib/api-config";
 import { PurchaseDetail } from "@/types/purchase";
+import { PRICE_FIELD_KEYS, PriceFields, syncPriceFields } from "@/lib/purchase-math";
 
 const fmt = (v: string | number | null | undefined) =>
   v !== null && v !== undefined && v !== ""
     ? "$" + Number(v).toLocaleString("en-BD", { minimumFractionDigits: 2 })
     : "—";
+
+const num4 = (v: string | number | null | undefined) =>
+  v !== null && v !== undefined && v !== "" ? Number(v).toFixed(4) : "—";
+
+const plain = (v: string | number | null | undefined) =>
+  v !== null && v !== undefined && v !== "" ? String(v) : "—";
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "—";
+  const [y, m, d] = value.slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return value;
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+const ITEM_COLUMNS = [
+  "Product",
+  "Unit price",
+  "Total unit price",
+  "Purchased carton",
+  "Received carton",
+  "Damaged carton",
+  "Profit percentage",
+  "Carton price",
+  "Carton total price",
+  "Sale price",
+  "Total price",
+];
+
+function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[200px_1fr] items-baseline gap-4 border-b border-gray-100 px-2 py-3 text-sm">
+      <span className="text-gray-600">{label}:</span>
+      <span className="text-gray-800 whitespace-pre-line">{value}</span>
+    </div>
+  );
+}
+
+function PurchaseOverview({ purchase }: { purchase: PurchaseDetail }) {
+  const costRows: { label: string; value: string }[] = [
+    { label: "Total carton", value: plain(purchase.total_carton) },
+    { label: "Total CBM", value: num4(purchase.total_cbm) },
+    { label: "Total product price", value: num4(purchase.total_product_price) },
+    { label: "Shipping cost", value: num4(purchase.shipping_cost) },
+    { label: "Food quality control cost", value: num4(purchase.food_quality_control_cost) },
+    { label: "Container clearing cost", value: num4(purchase.container_clearing_cost) },
+    { label: "Lorry shipping cost", value: num4(purchase.lory_shipping_cost) },
+    { label: "Labourer handling cost", value: num4(purchase.labourer_handling_cost) },
+    { label: "Warehouse rent", value: num4(purchase.warehouse_rent) },
+    { label: "Employee salary", value: num4(purchase.employee_salary) },
+    { label: "Warehouse other cost", value: num4(purchase.warehouse_other_cost) },
+    { label: "Carton handling cost", value: num4(purchase.carton_handling_cost) },
+    { label: "Total purchase cost", value: num4(purchase.total_purchase_cost) },
+    { label: "Profit margin", value: num4(purchase.profit_margin) },
+    { label: "Expected sales", value: num4(purchase.expected_sales) },
+    { label: "Expected profit", value: num4(purchase.expected_profit) },
+    { label: "Paid", value: num4(purchase.payment) },
+    { label: "Payment due", value: num4(purchase.payment_due) },
+  ];
+
+  return (
+    <div className="text-gray-800">
+      <InfoRow label="Date" value={formatDate(purchase.date)} />
+      <InfoRow label="Receive date" value={formatDate(purchase.receive_date)} />
+      <InfoRow label="Vendor" value={purchase.vendor_name ?? "—"} />
+      <InfoRow label="Lot number" value={purchase.lot_number || "—"} />
+
+      <p className="px-2 pb-2 pt-5 text-sm text-gray-600">Purchase items:</p>
+      <div className="overflow-x-auto border border-gray-200">
+        <div className="bg-[#79aec8] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white">
+          Purchase items
+        </div>
+        <table className="w-full min-w-[1100px] text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 bg-gray-50">
+              {ITEM_COLUMNS.map((col, i) => (
+                <th
+                  key={col}
+                  className={`px-3 py-2 text-[10px] font-medium uppercase tracking-wide text-gray-500 ${
+                    i === 0 ? "text-left" : "text-center"
+                  }`}
+                >
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {purchase.purchase_items.length === 0 && (
+              <tr>
+                <td colSpan={ITEM_COLUMNS.length} className="px-3 py-8 text-center text-gray-400">
+                  No purchase items
+                </td>
+              </tr>
+            )}
+            {purchase.purchase_items.map((item) => (
+              <tr key={item.id} className="border-b border-gray-100 align-middle">
+                <td className="px-3 py-3">
+                  <div className="text-gray-700">{purchase.lot_number}</div>
+                  <div className="font-medium text-gray-900">{item.product_name}</div>
+                </td>
+                <td className="px-3 py-3 text-center">{num4(item.unit_price)}</td>
+                <td className="px-3 py-3 text-center">{num4(item.total_unit_price)}</td>
+                <td className="px-3 py-3 text-center">{plain(item.purchased_carton)}</td>
+                <td className="px-3 py-3 text-center">{plain(item.received_carton)}</td>
+                <td className="px-3 py-3 text-center">{plain(item.damaged_carton)}</td>
+                <td className="px-3 py-3 text-center">{num4(item.profit_percentage)}</td>
+                <td className="px-3 py-3 text-center">{num4(item.carton_price)}</td>
+                <td className="px-3 py-3 text-center">{num4(item.carton_total_price)}</td>
+                <td className="px-3 py-3 text-center">{num4(item.sale_price)}</td>
+                <td className="px-3 py-3 text-center">{num4(item.line_total)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-6">
+        {costRows.map(({ label, value }) => (
+          <InfoRow key={label} label={label} value={value} />
+        ))}
+        <InfoRow label="LC information" value={purchase.lc_information || "—"} />
+        <InfoRow label="BIL information" value={purchase.bil_information || "—"} />
+        <InfoRow label="Container information" value={purchase.container_information || "—"} />
+      </div>
+
+      {purchase.purchase_payments.length > 0 && (
+        <>
+          <p className="px-2 pb-2 pt-5 text-sm text-gray-600">Payments:</p>
+          <div className="border border-gray-200">
+            <div className="bg-[#79aec8] px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white">
+              Purchase payments
+            </div>
+            {purchase.purchase_payments.map((p) => (
+              <div
+                key={p.id}
+                className="grid grid-cols-[200px_1fr_auto] gap-4 border-b border-gray-100 px-3 py-2.5 text-sm last:border-0"
+              >
+                <span className="text-gray-600">{formatDate(p.date)}</span>
+                <span className="text-gray-500">{p.note || p.account_information || ""}</span>
+                <span className="font-medium">{num4(p.amount)}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 type ProductOption = {
   id: number;
@@ -27,10 +181,12 @@ type DraftPurchaseItem = {
   packet_per_carton: string;
   unit_price: string;
   carton_price: string;
+  line_total: string;
+  cbm: string;
   purchased_carton: string;
   received_carton: string;
   damaged_carton: string;
-  sale_price: string;
+  profit_percentage: string;
 };
 
 type DraftPurchase = {
@@ -59,7 +215,8 @@ type Props = {
   saving?: boolean;
   onClose: () => void;
   onAddPayment: (purchaseId: number, amount: string, date: string) => void;
-  onSaveEdit: (purchaseId: number, payload: DraftPurchase) => void;
+  onSaveEdit: (purchaseId: number, payload: DraftPurchase) => Promise<boolean>;
+  onAddPurchase: () => void;
 };
 
 type CostFieldKey =
@@ -93,10 +250,12 @@ const EMPTY_ITEM: DraftPurchaseItem = {
   packet_per_carton: "",
   unit_price: "",
   carton_price: "",
+  line_total: "",
+  cbm: "",
   purchased_carton: "",
   received_carton: "",
   damaged_carton: "",
-  sale_price: "",
+  profit_percentage: "",
 };
 
 export default function PurchaseDetailModal({
@@ -106,8 +265,15 @@ export default function PurchaseDetailModal({
                                               onClose,
                                               onAddPayment,
                                               onSaveEdit,
+                                              onAddPurchase,
                                             }: Props) {
+  const [mode, setMode] = useState<"view" | "edit">("view");
   const [tab, setTab] = useState<"items" | "costs" | "payments" | "notes">("items");
+
+  useEffect(() => {
+    setMode("view");
+    setTab("items");
+  }, [purchase?.id]);
   const [payAmt, setPayAmt] = useState("");
   const [payDate, setPayDate] = useState(new Date().toISOString().slice(0, 10));
 
@@ -132,10 +298,12 @@ export default function PurchaseDetailModal({
       packet_per_carton: String(item.packet_per_carton ?? ""),
       unit_price: String(item.unit_price ?? ""),
       carton_price: String(item.carton_price ?? ""),
+      line_total: String(item.line_total ?? ""),
+      cbm: item.cbm ?? "",
       purchased_carton: String(item.purchased_carton ?? ""),
       received_carton: String(item.received_carton ?? ""),
       damaged_carton: String(item.damaged_carton ?? ""),
-      sale_price: String(item.sale_price ?? ""),
+      profit_percentage: item.profit_percentage ?? "",
     }));
 
     setDraft({
@@ -170,7 +338,10 @@ export default function PurchaseDetailModal({
     setDraft((prev) => {
       if (!prev) return prev;
       const items = [...prev.purchase_items];
-      items[i] = { ...items[i], [key]: value };
+      const edited = { ...items[i], [key]: value };
+      items[i] = PRICE_FIELD_KEYS.includes(key as keyof PriceFields)
+        ? syncPriceFields(edited, key as keyof PriceFields)
+        : edited;
       return { ...prev, purchase_items: items };
     });
   };
@@ -247,7 +418,6 @@ export default function PurchaseDetailModal({
     updateItem(i, "product", String(p.id));
     updateItem(i, "product_name", p.name);
     updateItem(i, "packet_per_carton", String(p.packet_per_carton ?? ""));
-    updateItem(i, "sale_price", String(p.sale_price ?? ""));
 
     setSearches((prev) => {
       const next = [...prev];
@@ -262,9 +432,10 @@ export default function PurchaseDetailModal({
     });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!draft) return;
-    onSaveEdit(draft.id, draft);
+    const saved = await onSaveEdit(draft.id, draft);
+    if (saved) setMode("view");
   };
 
   const totalCartons = (draft?.purchase_items ?? []).reduce(
@@ -274,35 +445,74 @@ export default function PurchaseDetailModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center py-8 overflow-y-auto px-4 mt-20">
-      <div className="bg-white rounded-2xl w-full max-w-5xl shadow-2xl">
+      <div className="bg-white rounded-2xl w-full max-w-6xl shadow-2xl">
         <div className="px-7 pt-6 pb-5 border-b border-gray-100 flex justify-between items-start sticky top-0 bg-white rounded-t-2xl z-10">
           <div>
             <div className="flex items-center gap-3">
               <h2 className="text-lg font-semibold text-gray-900">
                 {purchase?.lot_number ?? "Loading..."}
               </h2>
-              {draft && (
+              {draft && mode === "edit" && (
                 <span className="font-mono text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg">
                   {totalCartons} cartons
                 </span>
               )}
             </div>
-            <p className="text-sm text-gray-400 mt-0.5">
-              {purchase?.vendor_name ?? "—"} · {purchase?.date ?? "—"}
-            </p>
+            {mode === "edit" && (
+              <p className="text-sm text-gray-400 mt-0.5">
+                {purchase?.vendor_name ?? "—"} · {purchase?.date ?? "—"}
+              </p>
+            )}
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-2">
+            {purchase && mode === "view" && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setMode("edit")}
+                  className="rounded-full bg-gray-400 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white hover:bg-[#417690]"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={onAddPurchase}
+                  className="rounded-full bg-gray-400 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white hover:bg-[#417690]"
+                >
+                  Add purchase
+                </button>
+                <Link
+                  href={`/purchases/${purchase.id}/invoice`}
+                  className="rounded-full bg-gray-400 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white hover:bg-[#417690]"
+                >
+                  Generate invoice
+                </Link>
+              </>
+            )}
+            {purchase && mode === "edit" && (
+              <button
+                type="button"
+                onClick={() => setMode("view")}
+                className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+              >
+                Cancel edit
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         <div className="px-7 py-6">
           {loading && <div className="text-center py-16 text-gray-400">Loading...</div>}
 
-          {!loading && purchase && draft && (
+          {!loading && purchase && mode === "view" && <PurchaseOverview purchase={purchase} />}
+
+          {!loading && purchase && draft && mode === "edit" && (
             <>
               <div className="grid grid-cols-5 gap-3 mb-6">
                 {[
@@ -392,20 +602,23 @@ export default function PurchaseDetailModal({
 
                         <div className="grid grid-cols-5 gap-2 items-end">
                           {[
-                            { label: "Pkt/Ctn", key: "packet_per_carton" },
-                            { label: "Unit Price", key: "unit_price" },
+                            { label: "Pcs/Ctn", key: "packet_per_carton" },
+                            { label: "Price / pc", key: "unit_price" },
                             { label: "Carton Price", key: "carton_price" },
                             { label: "Purchased", key: "purchased_carton" },
+                            { label: "Total Price", key: "line_total" },
+                            { label: "CBM / Ctn", key: "cbm" },
                             { label: "Received", key: "received_carton" },
                             { label: "Damaged", key: "damaged_carton" },
-                            { label: "Sale Price", key: "sale_price" },
+                            { label: "Profit % (÷)", key: "profit_percentage" },
                           ].map(({ label, key }) => (
                             <div key={key}>
                               <label className="text-xs text-gray-400 block mb-1">{label}</label>
                               <input
                                 type="number"
                                 placeholder="0"
-                                className="border border-gray-200 rounded-lg px-2.5 py-1.5 w-full text-sm text-right font-mono bg-white focus:outline-none focus:border-blue-400"
+                                readOnly={key === "packet_per_carton"}
+                                className="border border-gray-200 rounded-lg px-2.5 py-1.5 w-full text-sm text-right font-mono bg-white read-only:bg-gray-100 focus:outline-none focus:border-blue-400"
                                 value={item[key as keyof DraftPurchaseItem]}
                                 onChange={(e) =>
                                   updateItem(i, key as keyof DraftPurchaseItem, e.target.value)
@@ -569,7 +782,7 @@ export default function PurchaseDetailModal({
         </div>
 
         <div className="px-7 pb-6 pt-4 border-t border-gray-100 flex justify-end gap-3">
-          {draft && (
+          {draft && mode === "edit" && (
             <button
               onClick={handleSave}
               disabled={saving}

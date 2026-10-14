@@ -2,11 +2,16 @@ export type PurchaseItem = {
   id: number;
   product: number;
   product_name: string;
+  product_weight?: number;
+  product_unit?: string;
   packet_per_carton: number;
   unit_price: string;
   total_unit_price: string;
   carton_price: string;
   carton_total_price: string;
+  line_total: string;
+  cbm: string | null;
+  cbm_total: string;
   purchased_carton: number;
   received_carton: number | null;
   damaged_carton: number | null;
@@ -33,6 +38,7 @@ export type Purchase = {
   total_product_price: string;
   total_purchase_cost: string;
   total_carton: number | null;
+  total_cbm?: string;
   payment: string;
   payment_due: string;
   expected_sales: string;
@@ -40,6 +46,9 @@ export type Purchase = {
 };
 
 export type PurchaseDetail = Purchase & {
+  vendor_phone: string | null;
+  vendor_email: string | null;
+  vendor_address: string | null;
   shipping_cost: string;
   food_quality_control_cost: string;
   container_clearing_cost: string;
@@ -62,7 +71,11 @@ export type PurchaseDetail = Purchase & {
 export type PurchaseItemFormData = {
   product: string;
   product_name: string;
+  packet_per_carton: string;
   unit_price: string;
+  carton_price: string;
+  line_total: string;
+  cbm: string;
   purchased_carton: string;
   received_carton: string;
   damaged_carton: string;

@@ -3,6 +3,7 @@ import { notDeleted } from "../api-utils";
 import { dec, dateStr, isoDate, num, monthDisplay, pct } from "./helpers";
 import { serializeSale } from "./sale-service";
 import { getSaleDetail } from "./sale-service";
+import { purchaseItemsTotal } from "./purchase-service";
 
 export async function getDashboardData() {
   const now = new Date();
@@ -68,13 +69,13 @@ export async function getDashboardData() {
   const totalSaleDue = serializedSales.reduce((a, s) => a + num(s.payment_due), 0);
 
   const monthlyPurchaseCost = purchases.reduce((a, p) => {
-    const items = p.purchaseItems.reduce((s, i) => s + num(i.unitPrice) * i.purchasedCarton, 0);
+    const items = purchaseItemsTotal(p.purchaseItems);
     return a + items + num(p.shippingCost) + num(p.warehouseRent) + num(p.employeeSalary);
   }, 0);
 
   const purchaseDue = purchases.reduce((a, p) => {
     const paid = p.purchasePayments.reduce((s, pay) => s + num(pay.amount), 0);
-    const items = p.purchaseItems.reduce((s, i) => s + num(i.unitPrice) * i.purchasedCarton, 0);
+    const items = purchaseItemsTotal(p.purchaseItems);
     return a + items - paid;
   }, 0);
 

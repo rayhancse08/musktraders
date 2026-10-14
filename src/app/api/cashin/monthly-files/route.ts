@@ -4,6 +4,7 @@ import { withAuth, ok, created } from "@/lib/route-handler";
 import { notDeleted, parseJson } from "@/lib/api-utils";
 import { num } from "@/lib/services/helpers";
 import { serializeMonthlyFile } from "@/lib/services/common-service";
+import { ensureTaxCompany } from "@/lib/ensure-default-company";
 
 export const GET = withAuth(async (req: NextRequest) => {
   const year = parseInt(req.nextUrl.searchParams.get("year") ?? String(new Date().getFullYear()), 10);
@@ -25,7 +26,7 @@ export const POST = withAuth(async (req: NextRequest) => {
     data: {
       year: parseInt(body.year, 10),
       month: parseInt(body.month, 10),
-      companyId: body.company_name ? parseInt(body.company_name, 10) : null,
+      companyId: body.company_name ? parseInt(body.company_name, 10) : (await ensureTaxCompany()).id,
     },
     include: { company: true, cashInItems: true },
   });

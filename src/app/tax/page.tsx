@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { apiFetch } from "@/lib/apiFetch";
@@ -12,6 +12,7 @@ import {
   MONTHS,
 } from "@/types/tax";
 import { taxKeys, useTaxCategories, useTaxCompanies, useTaxMonthlyFiles } from "@/hooks/useTax";
+import { defaultCompanyId } from "@/lib/default-company";
 
 const d4 = (v: string | number) =>
   String(parseFloat(String(v || 0)).toFixed(4));
@@ -157,6 +158,19 @@ export default function TaxPage() {
   );
   const files = filesData?.results ?? [];
   const filesTotal = filesData?.count ?? 0;
+  const appliedDefaultCompany = useRef(false);
+
+  useEffect(() => {
+    if (!fileModal) {
+      appliedDefaultCompany.current = false;
+      return;
+    }
+    if (appliedDefaultCompany.current) return;
+    const companyId = defaultCompanyId(companies);
+    if (!companyId) return;
+    appliedDefaultCompany.current = true;
+    setFileForm((prev) => (prev.company_name ? prev : { ...prev, company_name: companyId }));
+  }, [fileModal, companies]);
   const filesLoading = filesIsLoading && !filesData;
 
   const saveCat = async () => {

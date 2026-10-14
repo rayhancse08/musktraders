@@ -1,5 +1,6 @@
 import { prisma } from "../prisma";
 import { notDeleted } from "../api-utils";
+import { effectiveCartonPrice, purchaseLineTotal, roundTo } from "../purchase-math";
 import { dec, decOrNull, dateStr, isoDate, num } from "./helpers";
 import type { Purchase, PurchaseItem, PurchasePayment, Vendor, Product } from "@prisma/client";
 
@@ -13,26 +14,41 @@ function calcPurchaseItem(item: PurchaseItem & { product: Product }) {
   const ppc = item.product.packetPerCarton ?? 1;
   const unitPrice = num(item.unitPrice);
   const purchased = item.purchasedCarton;
+  const cartonPrice = effectiveCartonPrice(
+    item.cartonPrice == null ? null : num(item.cartonPrice),
+    unitPrice,
+    ppc,
+  );
+  const lineTotal = purchaseLineTotal(cartonPrice, purchased);
+  const pieceUnitPrice = ppc ? cartonPrice / ppc : unitPrice;
   const totalUnitPrice = unitPrice * purchased;
-  const cartonPrice = unitPrice * ppc;
-  const cartonTotalPrice = cartonPrice * purchased;
   const profitPct = num(item.profitPercentage);
-  const salePrice = unitPrice * (1 + profitPct / 100);
+  const salePrice = pieceUnitPrice * (1 + profitPct / 100);
   const totalPrice = salePrice * purchased * ppc;
-  return { totalUnitPrice, cartonPrice, cartonTotalPrice, salePrice, totalPrice };
+  const cbm = item.cbm == null ? null : num(item.cbm);
+  const cbmTotal = cbm == null ? 0 : roundTo(cbm * purchased, 4);
+  return { totalUnitPrice, cartonPrice, lineTotal, salePrice, totalPrice, cbm, cbmTotal };
+}
+
+export function purchaseItemsTotal(items: (PurchaseItem & { product: Product })[]) {
+  return roundTo(items.reduce((sum, item) => sum + calcPurchaseItem(item).lineTotal, 0), 2);
 }
 
 function calcPurchaseTotals(p: PurchaseWithRelations) {
   let totalProductPrice = 0;
   let totalCarton = 0;
+  let totalCbm = 0;
   let expectedSales = 0;
 
   for (const item of p.purchaseItems) {
     const calc = calcPurchaseItem(item);
-    totalProductPrice += calc.totalUnitPrice;
+    totalProductPrice += calc.lineTotal;
     totalCarton += item.purchasedCarton;
+    totalCbm += calc.cbmTotal;
     expectedSales += calc.totalPrice;
   }
+  totalProductPrice = roundTo(totalProductPrice, 2);
+  totalCbm = roundTo(totalCbm, 4);
 
   const overhead =
     num(p.shippingCost) + num(p.foodQualityControlCost) + num(p.containerClearingCost) +
@@ -43,7 +59,30 @@ function calcPurchaseTotals(p: PurchaseWithRelations) {
   const payment = p.purchasePayments.reduce((s, pay) => s + num(pay.amount), 0);
   const expectedProfit = expectedSales - totalPurchaseCost;
 
-  return { totalProductPrice, totalPurchaseCost, totalCarton, payment, paymentDue: totalPurchaseCost - payment, expectedSales, expectedProfit };
+  return { totalProductPrice, totalPurchaseCost, totalCarton, totalCbm, payment, paymentDue: totalPurchaseCost - payment, expectedSales, expectedProfit };
+}
+
+function parseCartonPrice(item: Record<string, unknown>) {
+  const raw = parseFloat(String(item.carton_price ?? ""));
+  return Number.isFinite(raw) ? roundTo(raw, 8) : null;
+}
+
+function parseCbm(item: Record<string, unknown>) {
+  const raw = parseFloat(String(item.cbm ?? ""));
+  return Number.isFinite(raw) ? roundTo(raw, 4) : null;
+}
+
+function purchaseItemData(item: Record<string, unknown>) {
+  return {
+    productId: parseInt(item.product as string, 10),
+    unitPrice: parseFloat((item.unit_price as string) || "0"),
+    cartonPrice: parseCartonPrice(item),
+    cbm: parseCbm(item),
+    purchasedCarton: parseInt((item.purchased_carton as string) || "0", 10),
+    receivedCarton: item.received_carton ? parseInt(item.received_carton as string, 10) : null,
+    damagedCarton: item.damaged_carton ? parseInt(item.damaged_carton as string, 10) : null,
+    profitPercentage: item.profit_percentage ? parseFloat(item.profit_percentage as string) : null,
+  };
 }
 
 export function serializePurchase(p: PurchaseWithRelations) {
@@ -58,6 +97,7 @@ export function serializePurchase(p: PurchaseWithRelations) {
     total_product_price: dec(t.totalProductPrice),
     total_purchase_cost: dec(t.totalPurchaseCost),
     total_carton: t.totalCarton,
+    total_cbm: dec(t.totalCbm),
     payment: dec(t.payment),
     payment_due: dec(t.paymentDue),
     expected_sales: dec(t.expectedSales),
@@ -68,6 +108,9 @@ export function serializePurchase(p: PurchaseWithRelations) {
 export function serializePurchaseDetail(p: PurchaseWithRelations) {
   return {
     ...serializePurchase(p),
+    vendor_phone: p.vendor?.phoneNumber ?? null,
+    vendor_email: p.vendor?.email ?? null,
+    vendor_address: p.vendor?.address ?? null,
     shipping_cost: dec(p.shippingCost),
     food_quality_control_cost: dec(p.foodQualityControlCost),
     container_clearing_cost: dec(p.containerClearingCost),
@@ -87,11 +130,16 @@ export function serializePurchaseDetail(p: PurchaseWithRelations) {
         id: item.id,
         product: item.productId,
         product_name: item.product.name,
+        product_weight: Number(item.product.weight),
+        product_unit: item.product.unit,
         packet_per_carton: item.product.packetPerCarton ?? 1,
         unit_price: dec(item.unitPrice),
         total_unit_price: dec(calc.totalUnitPrice),
-        carton_price: dec(calc.cartonPrice),
-        carton_total_price: dec(calc.cartonTotalPrice),
+        carton_price: String(roundTo(calc.cartonPrice, 8)),
+        carton_total_price: dec(calc.lineTotal),
+        line_total: dec(calc.lineTotal),
+        cbm: calc.cbm == null ? null : String(calc.cbm),
+        cbm_total: dec(calc.cbmTotal),
         purchased_carton: item.purchasedCarton,
         received_carton: item.receivedCarton,
         damaged_carton: item.damagedCarton,
@@ -175,14 +223,7 @@ export async function createPurchase(body: Record<string, unknown>) {
       bilInformation: (body.bil_information as string) || null,
       containerInformation: (body.container_information as string) || null,
       purchaseItems: {
-        create: items.map((item) => ({
-          productId: parseInt(item.product as string, 10),
-          unitPrice: parseFloat((item.unit_price as string) || "0"),
-          purchasedCarton: parseInt((item.purchased_carton as string) || "0", 10),
-          receivedCarton: item.received_carton ? parseInt(item.received_carton as string, 10) : null,
-          damagedCarton: item.damaged_carton ? parseInt(item.damaged_carton as string, 10) : null,
-          profitPercentage: item.profit_percentage ? parseFloat(item.profit_percentage as string) : null,
-        })),
+        create: items.map(purchaseItemData),
       },
     },
     include: {
@@ -225,14 +266,7 @@ export async function updatePurchase(id: number, body: Record<string, unknown>) 
 
   if (items) {
     data.purchaseItems = {
-      create: items.map((item) => ({
-        productId: parseInt(item.product as string, 10),
-        unitPrice: parseFloat((item.unit_price as string) || "0"),
-        purchasedCarton: parseInt((item.purchased_carton as string) || "0", 10),
-        receivedCarton: item.received_carton ? parseInt(item.received_carton as string, 10) : null,
-        damagedCarton: item.damaged_carton ? parseInt(item.damaged_carton as string, 10) : null,
-        profitPercentage: item.profit_percentage ? parseFloat(item.profit_percentage as string) : null,
-      })),
+      create: items.map(purchaseItemData),
     };
   }
 

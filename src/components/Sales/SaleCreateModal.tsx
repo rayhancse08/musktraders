@@ -6,6 +6,7 @@ import {
   SaleFormData, SaleItemFormData, ProductOption,
   StoreOption, BillingOption,
 } from "@/types/sale";
+import { defaultCompanyId } from "@/lib/default-company";
 
 type Props = {
   formData: SaleFormData;
@@ -44,7 +45,14 @@ export default function SaleCreateModal({
         const billingRes = await apiFetch(
           `${getApiBase()}/billing-companies/?page=${billingPage}`
         );
-        setBilling(billingRes.results ?? billingRes);
+        const billingList: BillingOption[] = billingRes.results ?? billingRes;
+        setBilling(billingList);
+        const defaultId = defaultCompanyId(billingList);
+        if (defaultId) {
+          setFormData((prev) => (
+            prev.billing_company ? prev : { ...prev, billing_company: defaultId }
+          ));
+        }
 
       } catch (e) {
         console.error(e);

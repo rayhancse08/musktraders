@@ -1,4 +1,5 @@
 import { prisma } from "../prisma";
+import { ensureBillingCompany } from "../ensure-default-company";
 import { notDeleted } from "../api-utils";
 import { dec, decOrNull, dateStr, isoDate, monthDisplay, num, calcDiscount, pct } from "./helpers";
 import { Decimal } from "@prisma/client/runtime/library";
@@ -136,18 +137,45 @@ export async function getSaleDetail(id: number) {
   });
 }
 
+const ORDER_PREFIX = "MT-";
+
+async function nextOrderNo() {
+  const [row] = await prisma.$queryRaw<{ last: number | null }[]>`
+    SELECT MAX(CAST(substring(order_no FROM 4) AS INTEGER)) AS last
+    FROM sales
+    WHERE order_no ~ '^MT-[0-9]+$'
+  `;
+  return `${ORDER_PREFIX}${String((row?.last ?? 0) + 1).padStart(5, "0")}`;
+}
+
+function isOrderNoTaken(err: unknown) {
+  const e = err as { code?: string; meta?: { target?: unknown } };
+  return e?.code === "P2002" && /order_?no/i.test(String(e.meta?.target ?? ""));
+}
+
 export async function createSale(body: Record<string, unknown>) {
-  const { generateOrderNo } = await import("../api-utils");
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await insertSale(body, await nextOrderNo());
+    } catch (err) {
+      if (!isOrderNoTaken(err) || attempt >= 4) throw err;
+    }
+  }
+}
+
+async function insertSale(body: Record<string, unknown>, orderNo: string) {
   const saleItems = (body.sale_items as Record<string, unknown>[]) ?? [];
 
   return prisma.sale.create({
     data: {
-      orderNo: generateOrderNo(),
+      orderNo,
       date: new Date(body.date as string),
       deliveryDate: body.delivery_date ? new Date(body.delivery_date as string) : null,
       status: (body.status as "confirmed") ?? "confirmed",
       storeId: parseInt(body.store as string, 10),
-      billingCompanyId: body.billing_company ? parseInt(body.billing_company as string, 10) : null,
+      billingCompanyId: body.billing_company
+        ? parseInt(body.billing_company as string, 10)
+        : (await ensureBillingCompany()).id,
       shippingCharge: parseFloat((body.shipping_charge as string) || "0"),
       discountType: (body.discount_type as "flat") ?? "flat",
       discountAmount: parseFloat((body.discount_amount as string) || "0"),

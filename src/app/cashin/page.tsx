@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { apiFetch } from "@/lib/apiFetch";
@@ -17,6 +17,7 @@ import {
   useCashInCompanies,
   useCashInMonthlyFiles,
 } from "@/hooks/useCashIn";
+import { defaultCompanyId } from "@/lib/default-company";
 
 const d4 = (v: string | number) =>
   String(parseFloat(String(v || 0)).toFixed(4));
@@ -151,6 +152,19 @@ export default function CashInPage() {
   const files = filesData?.results ?? [];
   const filesTotal = filesData?.count ?? 0;
   const filesLoading = filesIsLoading && !filesData;
+  const appliedDefaultCompany = useRef(false);
+
+  useEffect(() => {
+    if (!fileModal) {
+      appliedDefaultCompany.current = false;
+      return;
+    }
+    if (appliedDefaultCompany.current) return;
+    const companyId = defaultCompanyId(companies);
+    if (!companyId) return;
+    appliedDefaultCompany.current = true;
+    setFileForm((prev) => (prev.company_name ? prev : { ...prev, company_name: companyId }));
+  }, [fileModal, companies]);
 
   const saveCat = async () => {
     if (!catModal.value.trim()) { setCatModal((p) => ({ ...p, error: "Name is required." })); return; }

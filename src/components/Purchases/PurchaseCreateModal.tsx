@@ -7,6 +7,7 @@ import {
   PurchaseFormData, PurchaseItemFormData,
   VendorOption, ProductOption,
 } from "@/types/purchase";
+import { PRICE_FIELD_KEYS, PriceFields, roundTo, syncPriceFields } from "@/lib/purchase-math";
 
 type Props = {
   formData: PurchaseFormData;
@@ -18,11 +19,23 @@ type Props = {
 };
 
 const EMPTY_ITEM: PurchaseItemFormData = {
-  product: "", product_name: "",
-  unit_price: "", purchased_carton: "",
+  product: "", product_name: "", packet_per_carton: "",
+  unit_price: "", carton_price: "", line_total: "", cbm: "",
+  purchased_carton: "",
   received_carton: "0", damaged_carton: "0",
   profit_percentage: "0",
 };
+
+const ITEM_FIELDS: { label: string; key: keyof PurchaseItemFormData; hint?: string }[] = [
+  { label: "Price / pc (FOB)", key: "unit_price" },
+  { label: "Carton Price (FOB)", key: "carton_price" },
+  { label: "Cartons", key: "purchased_carton" },
+  { label: "Total Price (US$)", key: "line_total", hint: "Type the invoice total for an exact match" },
+  { label: "CBM / Carton", key: "cbm" },
+  { label: "Recv. Cartons", key: "received_carton" },
+  { label: "Damaged", key: "damaged_carton" },
+  { label: "Profit % (÷)", key: "profit_percentage" },
+];
 
 // Clamp to 4 decimal places (API constraint)
 const d4 = (v: string | number) =>
@@ -41,9 +54,7 @@ const COST_FIELDS: { label: string; key: keyof PurchaseFormData }[] = [
 ];
 
 const DECIMAL_COST_KEYS = COST_FIELDS.map((f) => f.key);
-const DECIMAL_ITEM_KEYS: (keyof PurchaseItemFormData)[] = [
-  "unit_price", "profit_percentage",
-];
+const DECIMAL_ITEM_KEYS: (keyof PurchaseItemFormData)[] = ["profit_percentage"];
 
 export default function PurchaseCreateModal({
                                               formData, setFormData, onSave, onClose, saving, error,
@@ -95,7 +106,10 @@ export default function PurchaseCreateModal({
   const updateItem = (i: number, k: keyof PurchaseItemFormData, v: string) => {
     setFormData((p) => {
       const items = [...p.purchase_items];
-      items[i] = { ...items[i], [k]: v };
+      const edited = { ...items[i], [k]: v };
+      items[i] = PRICE_FIELD_KEYS.includes(k as keyof PriceFields)
+        ? syncPriceFields(edited, k as keyof PriceFields)
+        : edited;
       return { ...p, purchase_items: items };
     });
   };
@@ -115,17 +129,24 @@ export default function PurchaseCreateModal({
   const selectProduct = (i: number, p: ProductOption) => {
     updateItem(i, "product", String(p.id));
     updateItem(i, "product_name", p.name);
+    updateItem(i, "packet_per_carton", String(p.packet_per_carton ?? ""));
     const s = [...searches]; s[i] = p.name; setSearches(s);
     setOptions((prev) => { const a = [...prev]; a[i] = []; return a; });
   };
 
-  // Live subtotal from items
-  const productTotal = formData.purchase_items.reduce((acc, item) => {
-    const unitPrice = parseFloat(item.unit_price) || 0;
-    const cartons  = parseFloat(item.purchased_carton) || 0;
-    // total_price = unit_price * packet_per_carton * cartons — we approximate inline
-    return acc + unitPrice * cartons;
-  }, 0);
+  const productTotal = roundTo(
+    formData.purchase_items.reduce((acc, item) => acc + (parseFloat(item.line_total) || 0), 0),
+    2,
+  );
+  const totalCartons = formData.purchase_items.reduce(
+    (acc, item) => acc + (parseFloat(item.purchased_carton) || 0), 0,
+  );
+  const totalCbm = roundTo(
+    formData.purchase_items.reduce(
+      (acc, item) => acc + (parseFloat(item.cbm) || 0) * (parseFloat(item.purchased_carton) || 0), 0,
+    ),
+    4,
+  );
 
   const costTotal = DECIMAL_COST_KEYS.reduce(
     (acc, k) => acc + (parseFloat(formData[k] as string) || 0), 0
@@ -327,40 +348,29 @@ export default function PurchaseCreateModal({
                 </div>
 
                 {/* Numeric fields */}
-                <div className="grid grid-cols-6 gap-2 items-end">
-                  {[
-                    { label: "Unit Price",       key: "unit_price" },
-                    { label: "Cartons",          key: "purchased_carton" },
-                    { label: "Recv. Cartons",    key: "received_carton" },
-                    { label: "Damaged",          key: "damaged_carton" },
-                    { label: "Profit % (÷)",     key: "profit_percentage" },
-                  ].map(({ label, key }) => (
-                    <div key={key}>
+                <div className="grid grid-cols-4 gap-2 items-end">
+                  {ITEM_FIELDS.map(({ label, key, hint }) => (
+                    <div key={key} title={hint}>
                       <label className="text-xs text-gray-400 block mb-1">{label}</label>
                       <input
                         type="number" placeholder="0"
-                        className="border border-gray-200 rounded-lg px-2.5 py-1.5 w-full text-sm text-right font-mono bg-white focus:outline-none focus:border-blue-400"
-                        value={item[key as keyof PurchaseItemFormData]}
-                        onChange={(e) =>
-                          updateItem(i, key as keyof PurchaseItemFormData, e.target.value)
-                        }
+                        className={`border rounded-lg px-2.5 py-1.5 w-full text-sm text-right font-mono bg-white focus:outline-none focus:border-blue-400 ${
+                          key === "line_total" ? "border-blue-200 font-semibold" : "border-gray-200"
+                        }`}
+                        value={item[key]}
+                        onChange={(e) => updateItem(i, key, e.target.value)}
                       />
                     </div>
                   ))}
-
-                  {/* Line total approx */}
-                  <div className="text-right">
-                    <label className="text-xs text-gray-400 block mb-1">Line Total</label>
-                    <div className="text-sm font-mono font-semibold text-gray-800 py-1.5 px-2">
-                      {fmt(
-                        (parseFloat(item.unit_price) || 0) *
-                        (parseFloat(item.purchased_carton) || 0)
-                      )}
-                    </div>
-                  </div>
                 </div>
 
-                <div className="flex justify-end mt-2">
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-xs text-gray-400">
+                    {item.packet_per_carton ? `${item.packet_per_carton} pcs / carton` : "Select a product"}
+                    {item.cbm && item.purchased_carton
+                      ? ` · CBM total ${roundTo((parseFloat(item.cbm) || 0) * (parseFloat(item.purchased_carton) || 0), 4)}`
+                      : ""}
+                  </span>
                   <button
                     onClick={() => removeItem(i)}
                     className="text-xs text-red-500 hover:text-red-700"
@@ -399,6 +409,14 @@ export default function PurchaseCreateModal({
           {/* Summary */}
           <div className="flex justify-end">
             <div className="w-64 bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Total Cartons</span>
+                <span className="font-mono text-xs text-gray-700">{totalCartons}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Total CBM</span>
+                <span className="font-mono text-xs text-gray-700">{totalCbm}</span>
+              </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Product Total</span>
                 <span className="font-mono text-xs text-gray-700">{fmt(productTotal)}</span>

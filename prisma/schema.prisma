@@ -223,6 +223,8 @@ model PurchaseItem {
   purchaseId        Int      @map("purchase_id")
   productId         Int      @map("product_id")
   unitPrice         Decimal  @map("unit_price") @db.Decimal(12, 4)
+  cartonPrice       Decimal? @map("carton_price") @db.Decimal(18, 8)
+  cbm               Decimal? @db.Decimal(10, 4)
   purchasedCarton   Int      @map("purchased_carton")
   receivedCarton    Int?     @map("received_carton")
   damagedCarton     Int?     @map("damaged_carton")

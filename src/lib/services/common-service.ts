@@ -168,7 +168,7 @@ export async function recalculateMonthlyReport(year: number, month: number) {
   const [purchases, sales, costs, damages] = await Promise.all([
     prisma.purchase.findMany({
       where: { ...notDeleted(), date: { gte: start, lte: end } },
-      include: { purchaseItems: true, purchasePayments: { where: notDeleted() } },
+      include: { purchaseItems: { include: { product: true } }, purchasePayments: { where: notDeleted() } },
     }),
     prisma.sale.findMany({
       where: { ...notDeleted(), date: { gte: start, lte: end } },
@@ -187,8 +187,8 @@ export async function recalculateMonthlyReport(year: number, month: number) {
   ]);
 
   const { serializeSale } = await import("./sale-service");
-  const purchaseAmt = purchases.reduce((a, p) =>
-    a + p.purchaseItems.reduce((s, i) => s + num(i.unitPrice) * i.purchasedCarton, 0), 0);
+  const { purchaseItemsTotal } = await import("./purchase-service");
+  const purchaseAmt = purchases.reduce((a, p) => a + purchaseItemsTotal(p.purchaseItems), 0);
   const warehouseCost = costs.reduce((a, c) => a + num(c.amount), 0);
   const saleAmt = sales.map(serializeSale).reduce((a, s) => a + num(s.total), 0);
   const damageAmt = damages.reduce((a, d) => a + num(d.price), 0);

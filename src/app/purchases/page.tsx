@@ -84,7 +84,7 @@ export default function PurchasesPage() {
     }
   };
 
-  const handleSaveEdit = async (purchaseId: number, payload: any) => {
+  const handleSaveEdit = async (purchaseId: number, payload: any): Promise<boolean> => {
     setSaving(true);
     setError(null);
 
@@ -109,6 +109,8 @@ export default function PurchasesPage() {
           .map((item: any) => ({
             product: item.product,
             unit_price: item.unit_price || "0",
+            carton_price: item.carton_price || "",
+            cbm: item.cbm || "",
             purchased_carton: item.purchased_carton || "0",
             received_carton: item.received_carton || "0",
             damaged_carton: item.damaged_carton || "0",
@@ -123,8 +125,10 @@ export default function PurchasesPage() {
 
       await openDetail(purchaseId);
       await refreshPurchases();
+      return true;
     } catch (err: any) {
       setError(err.message ?? "Failed to update purchase");
+      return false;
     } finally {
       setSaving(false);
     }
@@ -197,6 +201,12 @@ export default function PurchasesPage() {
           }}
           onAddPayment={handleAddPayment}
           onSaveEdit={handleSaveEdit}
+          onAddPurchase={() => {
+            setDetailOpen(false);
+            setDetailPurchase(null);
+            setFormData(EMPTY_FORM);
+            setCreateOpen(true);
+          }}
         />
 
       )}
