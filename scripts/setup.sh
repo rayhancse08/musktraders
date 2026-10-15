@@ -43,12 +43,12 @@ if ! npx prisma generate >> "$LOG" 2>&1; then
   log "WARNING: prisma generate failed — see setup.log"
 fi
 
-log "Starting dev server (webpack mode, port 3000)..."
-log "Open: http://localhost:3000/login"
+log "Starting dev server (webpack mode, port 3001)..."
+log "Open: http://localhost:3001/login"
 echo ""
 echo "Setup log: $LOG"
 echo "Dev log:   $ROOT/dev-server.log"
 echo ""
 
 export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096"
-exec npx next dev --hostname 0.0.0.0 --port 3000 --webpack 2>&1 | tee -a "$ROOT/dev-server.log"
+exec npx next dev --hostname 0.0.0.0 --port 3001 --webpack 2>&1 | tee -a "$ROOT/dev-server.log"

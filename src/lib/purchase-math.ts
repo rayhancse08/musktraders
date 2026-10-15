@@ -1,76 +1,82 @@
+/**
+ * Purchase calculations shared by the API and the purchase form, mirroring the
+ * Django `Purchase.save()` / `PurchaseItem.save()` logic.
+ */
+
 export function roundTo(value: number, places: number) {
   const factor = 10 ** places;
   return Math.round((value + Number.EPSILON) * factor) / factor;
 }
 
-/**
- * Carton price is the invoiced FOB price per carton. Older rows only have a
- * per-piece unit price, so fall back to unit price × pieces per carton.
- */
-export function effectiveCartonPrice(
-  cartonPrice: number | null | undefined,
-  unitPrice: number,
-  piecesPerCarton: number,
-) {
-  return cartonPrice != null ? cartonPrice : unitPrice * piecesPerCarton;
-}
+/** Equivalent of Django's `config.PROFIT_PERCENTAGE`; sale price = carton total price ÷ this. */
+export const PROFIT_PERCENTAGE = (() => {
+  const v = parseFloat(process.env.NEXT_PUBLIC_PROFIT_PERCENTAGE ?? "");
+  return Number.isFinite(v) && v !== 0 ? v : 0.8;
+})();
 
-/** Invoice line total, rounded to cents so the invoice grand total matches line by line. */
-export function purchaseLineTotal(cartonPrice: number, cartons: number) {
-  return roundTo(cartonPrice * cartons, 2);
-}
+export const PURCHASE_COST_FIELDS = [
+  { key: "shipping_cost", label: "Shipping cost" },
+  { key: "food_quality_control_cost", label: "Food quality control" },
+  { key: "container_clearing_cost", label: "Container clearing" },
+  { key: "lory_shipping_cost", label: "Lorry shipping" },
+  { key: "labourer_handling_cost", label: "Labourer handling" },
+  { key: "warehouse_rent", label: "Warehouse rent" },
+  { key: "employee_salary", label: "Employee salary" },
+  { key: "warehouse_other_cost", label: "Warehouse other cost" },
+] as const;
 
-export type PriceFields = {
-  packet_per_carton: string;
-  unit_price: string;
-  carton_price: string;
-  line_total: string;
-  purchased_carton: string;
+export type PurchaseCostKey = (typeof PURCHASE_COST_FIELDS)[number]["key"];
+
+export type PurchaseItemInput = {
+  unitPrice: number;
+  packetPerCarton: number;
+  purchasedCarton: number;
+  profitPercentage: number | null;
 };
 
-const parseNum = (v: string | undefined) => {
-  const n = parseFloat(v ?? "");
-  return Number.isFinite(n) ? n : null;
-};
+export function calcPurchaseItem(item: PurchaseItemInput, cartonHandlingCost: number) {
+  const ppc = item.packetPerCarton || 1;
+  const cartonPrice = item.unitPrice * ppc;
+  const totalPrice = cartonPrice * item.purchasedCarton;
+  const cartonTotalPrice = cartonPrice + cartonHandlingCost;
+  // A profit percentage of 0 falls back to the default, as in Django.
+  const divisor = item.profitPercentage || PROFIT_PERCENTAGE;
 
-/**
- * Keeps unit price, carton price and line total consistent after one of them
- * (or the carton count / pieces per carton) is edited. Carton price is the
- * source of truth because supplier invoices round the per-piece price.
- */
-export function syncPriceFields<T extends PriceFields>(item: T, changed: keyof PriceFields): T {
-  const next = { ...item };
-  const ppc = parseNum(item.packet_per_carton) || null;
-  const cartons = parseNum(item.purchased_carton);
-  let carton = parseNum(item.carton_price);
-
-  if (changed === "unit_price") {
-    const unit = parseNum(item.unit_price);
-    if (unit != null && ppc) {
-      carton = unit * ppc;
-      next.carton_price = String(roundTo(carton, 8));
-    }
-  } else if (changed === "line_total") {
-    const total = parseNum(item.line_total);
-    if (total != null && cartons) {
-      carton = total / cartons;
-      next.carton_price = String(roundTo(carton, 8));
-    }
-  }
-
-  if (changed !== "unit_price" && carton != null && ppc) {
-    next.unit_price = String(roundTo(carton / ppc, 6));
-  }
-  if (changed !== "line_total" && carton != null && cartons != null) {
-    next.line_total = String(purchaseLineTotal(carton, cartons));
-  }
-  return next;
+  return {
+    cartonPrice: roundTo(cartonPrice, 4),
+    totalPrice: roundTo(totalPrice, 4),
+    cartonTotalPrice: roundTo(cartonTotalPrice, 4),
+    totalUnitPrice: roundTo(cartonTotalPrice / ppc, 4),
+    salePrice: roundTo(cartonTotalPrice / divisor, 4),
+  };
 }
 
-export const PRICE_FIELD_KEYS: (keyof PriceFields)[] = [
-  "packet_per_carton",
-  "unit_price",
-  "carton_price",
-  "line_total",
-  "purchased_carton",
-];
+export function calcPurchase(input: {
+  items: PurchaseItemInput[];
+  costs: number[];
+  payments: number[];
+  expectedSales: number;
+}) {
+  const totalProductPrice = roundTo(
+    input.items.reduce((sum, item) => sum + calcPurchaseItem(item, 0).totalPrice, 0),
+    4,
+  );
+  const additionalCost = roundTo(input.costs.reduce((sum, c) => sum + c, 0), 4);
+  const totalPurchaseCost = roundTo(totalProductPrice + additionalCost, 4);
+  const totalCarton = input.items.reduce((sum, item) => sum + item.purchasedCarton, 0);
+  const cartonHandlingCost = totalCarton ? roundTo(additionalCost / totalCarton, 4) : 0;
+  const payment = roundTo(input.payments.reduce((sum, p) => sum + p, 0), 4);
+
+  return {
+    totalProductPrice,
+    additionalCost,
+    totalPurchaseCost,
+    totalCarton,
+    cartonHandlingCost,
+    payment,
+    // Due is measured against the product price only, not the landed cost.
+    paymentDue: roundTo(totalProductPrice - payment, 4),
+    expectedSales: roundTo(input.expectedSales, 4),
+    expectedProfit: roundTo(input.expectedSales - totalPurchaseCost, 4),
+  };
+}

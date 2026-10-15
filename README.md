@@ -52,7 +52,7 @@ npm run dev
 
 ### 3. Login
 
-Open [http://localhost:3000/login](http://localhost:3000/login)
+Open [http://localhost:3001/login](http://localhost:3001/login)
 
 | Email | Password |
 |-------|----------|

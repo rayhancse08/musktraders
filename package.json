@@ -3,11 +3,11 @@
   "version": "2.0.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--max-old-space-size=4096' next dev --hostname 0.0.0.0 --port 3000 --webpack",
+    "dev": "NODE_OPTIONS='--max-old-space-size=4096' next dev --hostname 0.0.0.0 --port 3001 --webpack",
     "dev:safe": "bash scripts/dev.sh",
     "setup": "bash scripts/setup.sh",
     "build": "prisma generate && next build",
-    "start": "next start --hostname 0.0.0.0 --port 3000",
+    "start": "next start --hostname 0.0.0.0 --port 3001",
     "lint": "next lint",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

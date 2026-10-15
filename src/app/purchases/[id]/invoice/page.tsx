@@ -40,7 +40,6 @@ const COSTS: { label: string; key: keyof PurchaseDetail }[] = [
   { label: "Warehouse rent", key: "warehouse_rent" },
   { label: "Employee salary", key: "employee_salary" },
   { label: "Other costs", key: "warehouse_other_cost" },
-  { label: "Carton handling", key: "carton_handling_cost" },
 ];
 
 const cell = "border border-black px-2 py-1";
@@ -150,14 +149,12 @@ export default function PurchaseInvoicePage() {
                 <td className={`${cell} text-right`}>{i + 1}</td>
                 <td className={cell}>{item.product_name}</td>
                 <td className={cell}>{packagingDetail(item)}</td>
-                <td className={`${cell} text-right`}>
-                  {number(parseFloat(item.carton_price) / (item.packet_per_carton || 1), 2)}
-                </td>
+                <td className={`${cell} text-right`}>{number(item.unit_price, 2, 4)}</td>
                 <td className={`${cell} text-right`}>{number(item.carton_price, 2)}</td>
                 <td className={`${cell} text-right`}>{number(item.cbm, 3, 4)}</td>
                 <td className={`${cell} text-right`}>{item.purchased_carton}</td>
                 <td className={`${cell} text-right`}>{number(item.cbm_total, 2)}</td>
-                <td className={`${cell} text-right`}>$ {number(item.line_total, 2)}</td>
+                <td className={`${cell} text-right`}>$ {number(item.total_price, 2)}</td>
               </tr>
             ))}
             <tr className="font-bold">

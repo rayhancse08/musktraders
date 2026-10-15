@@ -7,7 +7,7 @@ export function getBackendRoot() {
   if (typeof window !== "undefined") {
     return (process.env.NEXT_PUBLIC_API_URL || window.location.origin).replace(/\/$/, "");
   }
-  return (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000").replace(/\/$/, "");
+  return (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001").replace(/\/$/, "");
 }
 
 export function getApiBase() {
