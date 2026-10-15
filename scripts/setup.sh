@@ -51,4 +51,4 @@ echo "Dev log:   $ROOT/dev-server.log"
 echo ""
 
 export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096"
-exec npx next dev --hostname 0.0.0.0 --port 3001 --webpack 2>&1 | tee -a "$ROOT/dev-server.log"
+PORT=3001 exec npx next dev --hostname 0.0.0.0 --port 3001 --webpack 2>&1 | tee -a "$ROOT/dev-server.log"

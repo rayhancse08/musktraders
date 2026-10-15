@@ -27,7 +27,7 @@ log "Open http://localhost:3001/login"
 export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096"
 
 set +e
-npx next dev --hostname 0.0.0.0 --port 3001 --webpack 2>&1 | tee -a "$LOG"
+PORT=3001 npx next dev --hostname 0.0.0.0 --port 3001 --webpack 2>&1 | tee -a "$LOG"
 EXIT=${PIPESTATUS[0]}
 set -e
 

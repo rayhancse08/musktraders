@@ -7,7 +7,7 @@ export function getBackendRoot() {
   if (typeof window !== "undefined") {
     return (process.env.NEXT_PUBLIC_API_URL || window.location.origin).replace(/\/$/, "");
   }
-  return (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001").replace(/\/$/, "");
+  return (process.env.NEXT_PUBLIC_API_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/$/, "");
 }
 
 export function getApiBase() {
@@ -21,7 +21,7 @@ export function getApiBase() {
 /** @deprecated Prefer apiPath() — kept for gradual migration */
 export const API_BASE = typeof window !== "undefined"
   ? "" // resolved at runtime via getApiBase()
-  : (process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api` : "http://localhost:3001/api");
+  : (process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api` : `http://localhost:${process.env.PORT || 3000}/api`);
 
 export function getApiBaseUrl() {
   return getApiBase();
