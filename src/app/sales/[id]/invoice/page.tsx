@@ -39,8 +39,8 @@ export default function SaleInvoicePage() {
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-4 flex items-center justify-between print:hidden">
-        <Link href="/sales" className="text-sm font-medium text-slate-500 hover:text-slate-800">
-          Back to sales
+        <Link href={`/sales/${sale.id}`} className="text-sm font-medium text-slate-500 hover:text-slate-800">
+          ← Back to order
         </Link>
         <button
           type="button"
@@ -89,9 +89,9 @@ export default function SaleInvoicePage() {
           <thead>
             <tr className="border-y border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400">
               <th className="py-3 font-semibold">Product</th>
-              <th className="py-3 text-right font-semibold">Qty</th>
-              <th className="py-3 text-right font-semibold">Price</th>
-              <th className="py-3 text-right font-semibold">Discount</th>
+              <th className="py-3 text-right font-semibold">Cartons</th>
+              <th className="py-3 text-right font-semibold">Carton price</th>
+              <th className="py-3 text-right font-semibold">Discount / ctn</th>
               <th className="py-3 text-right font-semibold">Total</th>
             </tr>
           </thead>

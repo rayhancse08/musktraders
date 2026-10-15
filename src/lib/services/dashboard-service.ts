@@ -1,8 +1,7 @@
 import { prisma } from "../prisma";
 import { notDeleted } from "../api-utils";
 import { dec, dateStr, isoDate, num, monthDisplay, pct } from "./helpers";
-import { serializeSale } from "./sale-service";
-import { getSaleDetail } from "./sale-service";
+import { SALE_INCLUDE, serializeSale } from "./sale-service";
 import { purchaseItemsTotal } from "./purchase-service";
 
 export async function getDashboardData() {
@@ -17,12 +16,7 @@ export async function getDashboardData() {
   const [sales, purchases, warehouseCosts, returns, damages, products, monthlyPlan] = await Promise.all([
     prisma.sale.findMany({
       where: { ...notDeleted(), date: { gte: monthStart, lte: monthEnd } },
-      include: {
-        store: true,
-        billingCompany: true,
-        saleItems: { include: { product: true } },
-        salePayments: { where: notDeleted() },
-      },
+      include: SALE_INCLUDE,
     }),
     prisma.purchase.findMany({
       where: { ...notDeleted(), date: { gte: monthStart, lte: monthEnd } },
@@ -50,12 +44,7 @@ export async function getDashboardData() {
 
   const allSales = await prisma.sale.findMany({
     where: notDeleted(),
-    include: {
-      store: true,
-      billingCompany: true,
-      saleItems: { include: { product: true } },
-      salePayments: { where: notDeleted() },
-    },
+    include: SALE_INCLUDE,
     orderBy: { id: "desc" },
     take: 5,
   });
@@ -110,12 +99,7 @@ export async function getDashboardData() {
         ...notDeleted(),
         date: { gte: new Date(thisYear, m - 1, 1), lte: new Date(thisYear, m, 0) },
       },
-      include: {
-        store: true,
-        billingCompany: true,
-        saleItems: { include: { product: true } },
-        salePayments: { where: notDeleted() },
-      },
+      include: SALE_INCLUDE,
     });
     const rev = mSales.map(serializeSale).reduce((a, s) => a + num(s.total), 0);
     const prof = mSales.map(serializeSale).reduce((a, s) => a + num(s.profit), 0);
@@ -124,6 +108,7 @@ export async function getDashboardData() {
 
   const topProductsRaw = await prisma.saleItem.groupBy({
     by: ["productId"],
+    where: { sale: notDeleted() },
     _sum: { quantity: true },
     orderBy: { _sum: { quantity: "desc" } },
     take: 5,
@@ -132,8 +117,8 @@ export async function getDashboardData() {
   const topProducts = await Promise.all(
     topProductsRaw.map(async (tp) => {
       const product = await prisma.product.findUnique({ where: { id: tp.productId } });
-      const items = await prisma.saleItem.findMany({ where: { productId: tp.productId } });
-      const revenue = items.reduce((a, i) => a + num(i.price) * i.quantity, 0);
+      const items = await prisma.saleItem.findMany({ where: { productId: tp.productId, sale: notDeleted() } });
+      const revenue = items.reduce((a, i) => a + (num(i.price) - num(i.discount)) * i.quantity, 0);
       return {
         product_name: product?.name ?? "Unknown",
         total_qty: tp._sum.quantity ?? 0,

@@ -87,6 +87,43 @@ export async function createWarehouseItem(body: Record<string, unknown>) {
   });
 }
 
+/** Remaining cartons: a manual override wins, otherwise stocked − damaged − sold + returned. */
+export function remainingOf(w: Pick<
+  WarehouseItem,
+  "stockedQuantity" | "damagedQuantity" | "saleQuantity" | "returnQuantity" | "manualRemainingQuantity"
+>) {
+  return (
+    w.manualRemainingQuantity ??
+    (w.stockedQuantity ?? 0) - (w.damagedQuantity ?? 0) - (w.saleQuantity ?? 0) + (w.returnQuantity ?? 0)
+  );
+}
+
+/** Re-derives sold / remaining quantities from the sale lot allocations. */
+export async function recalculateWarehouseItems(ids: Iterable<number>) {
+  const unique = [...new Set(ids)];
+  if (!unique.length) return;
+  const rows = await prisma.warehouseItem.findMany({
+    where: { id: { in: unique } },
+    include: { product: true, saleLots: { select: { saleQuantity: true } } },
+  });
+  await prisma.$transaction(
+    rows.map((w) => {
+      const ppc = w.product.packetPerCarton ?? 1;
+      const sold = w.saleLots.reduce((sum, lot) => sum + lot.saleQuantity, 0);
+      const remaining = remainingOf({ ...w, saleQuantity: sold });
+      return prisma.warehouseItem.update({
+        where: { id: w.id },
+        data: {
+          saleQuantity: sold,
+          salePacketQuantity: sold * ppc,
+          remainingQuantity: remaining,
+          remainingPacketQuantity: remaining * ppc,
+        },
+      });
+    }),
+  );
+}
+
 export async function updateWarehouseItem(id: number, body: Record<string, unknown>) {
   const data: Record<string, unknown> = {};
   if (body.product) data.productId = parseInt(body.product as string, 10);

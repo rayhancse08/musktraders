@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { KpiCard } from "@/components/inventory/kpi-card";
 import { PageHeader, SearchInput } from "@/components/inventory/ui-primitives";
 import PurchaseTable from "@/components/Purchases/PurchaseTable";
-import { AsyncSelect } from "@/components/Purchases/AsyncSelect";
+import { AsyncSelect } from "@/components/inventory/async-select";
 import { usd as money } from "@/lib/format-number";
 import { usePurchases } from "@/hooks/usePurchases";
 import { VendorOption } from "@/types/purchase";

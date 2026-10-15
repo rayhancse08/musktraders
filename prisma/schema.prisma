@@ -137,7 +137,8 @@ model WarehouseItem {
   updatedAt               DateTime  @updatedAt @map("updated_at")
   deletedAt               DateTime? @map("deleted_at")
 
-  product Product @relation(fields: [productId], references: [id])
+  product  Product       @relation(fields: [productId], references: [id])
+  saleLots SaleItemLot[]
 
   @@map("warehouse_items")
 }
@@ -289,10 +290,30 @@ model SaleItem {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  sale        Sale          @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product     Product       @relation(fields: [productId], references: [id])
+  productLots SaleItemLot[]
 
   @@map("sale_items")
+}
+
+/// Cartons of a sale item taken from one warehouse lot (Django `product_lots`).
+model SaleItemLot {
+  id              Int      @id @default(autoincrement())
+  saleItemId      Int      @map("sale_item_id")
+  warehouseItemId Int      @map("warehouse_item_id")
+  lotNumber       String?  @map("lot_number")
+  saleQuantity    Int      @map("sale_quantity")
+  purchasePrice   Decimal  @map("purchase_price") @db.Decimal(12, 4)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  saleItem      SaleItem      @relation(fields: [saleItemId], references: [id], onDelete: Cascade)
+  warehouseItem WarehouseItem @relation(fields: [warehouseItemId], references: [id])
+
+  @@index([saleItemId])
+  @@index([warehouseItemId])
+  @@map("sale_item_lots")
 }
 
 model SalePayment {

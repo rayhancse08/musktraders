@@ -2,6 +2,7 @@ import { prisma } from "../prisma";
 import { notDeleted, slugify } from "../api-utils";
 import { idsSortedByName, inSortedOrder } from "../name-order";
 import { dec, decOrNull, dateStr, isoDate } from "./helpers";
+import { remainingOf } from "./warehouse-service";
 import type { Product, Brand, ProductCategory } from "@prisma/client";
 
 type ProductWithRelations = Product & {
@@ -50,7 +51,7 @@ export async function recalculateProduct(productId: number) {
   });
 
   let stockedQty = 0;
-  let stockedPackets = 0;
+  let availableQty = 0;
   let totalPurchase = 0;
   let totalSale = 0;
   let totalPackets = 0;
@@ -60,7 +61,7 @@ export async function recalculateProduct(productId: number) {
 
   for (const item of items) {
     stockedQty += item.stockedQuantity ?? 0;
-    stockedPackets += (item.stockedQuantity ?? 0) * ppc;
+    availableQty += item.remainingQuantity ?? remainingOf(item);
     totalPurchase += Number(item.purchasedPrice ?? 0) * (item.stockedQuantity ?? 0);
     totalSale += Number(item.salePrice ?? 0) * (item.stockedQuantity ?? 0);
     totalPackets += (item.stockedQuantity ?? 0) * ppc;
@@ -73,8 +74,9 @@ export async function recalculateProduct(productId: number) {
   return prisma.product.update({
     where: { id: productId },
     data: {
-      stockedQuantity: stockedQty,
-      stockedPacketQuantity: stockedPackets,
+      // Stock on hand: what is left in the warehouse after sales and damage.
+      stockedQuantity: availableQty,
+      stockedPacketQuantity: availableQty * ppc,
       purchasePrice,
       salePrice,
       packetPrice,
@@ -128,6 +130,8 @@ export async function autocompleteProducts(q: string) {
     packet_price: decOrNull(p.packetPrice),
     sale_price: decOrNull(p.salePrice),
     packet_per_carton: p.packetPerCarton ?? 1,
+    discount_type: p.discountType,
+    discount: decOrNull(p.discount),
   }));
 }
 

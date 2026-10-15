@@ -6,6 +6,9 @@ import {
   roundTo,
 } from "../purchase-math";
 import { dec, decOrNull, dateStr, isoDate, num } from "./helpers";
+import {
+  Body, dateRangeFilter, optionalDate, optionalInt, optionalNumber, requiredInt, requiredNumber, str,
+} from "./form-parse";
 import { recalculateProduct } from "./product-service";
 import type { Prisma, Purchase, PurchaseItem, PurchasePayment, Vendor, Product } from "@prisma/client";
 
@@ -155,28 +158,6 @@ export function serializePurchaseDetail(p: PurchaseWithRelations, expectedSales 
 
 // ── Listing ──────────────────────────────────────────────────────────────────
 
-export type PurchaseDateRange = "today" | "past_7_days" | "this_month" | "this_year";
-
-function dateRangeFilter(range?: string) {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth();
-  const d = now.getDate();
-  const utc = (yy: number, mm: number, dd: number) => new Date(Date.UTC(yy, mm, dd));
-  switch (range as PurchaseDateRange) {
-    case "today":
-      return { gte: utc(y, m, d), lt: utc(y, m, d + 1) };
-    case "past_7_days":
-      return { gte: utc(y, m, d - 7), lt: utc(y, m, d + 1) };
-    case "this_month":
-      return { gte: utc(y, m, 1), lt: utc(y, m + 1, 1) };
-    case "this_year":
-      return { gte: utc(y, 0, 1), lt: utc(y + 1, 0, 1) };
-    default:
-      return undefined;
-  }
-}
-
 export async function listPurchases(params: {
   search?: string;
   page?: number;
@@ -239,44 +220,6 @@ export async function getPurchaseDetail(id: number) {
 }
 
 // ── Validation ───────────────────────────────────────────────────────────────
-
-type Body = Record<string, unknown>;
-
-const str = (v: unknown) => (v == null ? "" : String(v).trim());
-
-function optionalNumber(v: unknown, label: string) {
-  const s = str(v);
-  if (!s) return null;
-  const n = Number(s);
-  if (!Number.isFinite(n)) throw new ApiError(`${label}: enter a valid number.`);
-  return n;
-}
-
-function requiredNumber(v: unknown, label: string) {
-  const n = optionalNumber(v, label);
-  if (n == null) throw new ApiError(`${label}: this field is required.`);
-  return n;
-}
-
-function optionalInt(v: unknown, label: string) {
-  const n = optionalNumber(v, label);
-  if (n != null && !Number.isInteger(n)) throw new ApiError(`${label}: enter a whole number.`);
-  return n;
-}
-
-function requiredInt(v: unknown, label: string) {
-  const n = optionalInt(v, label);
-  if (n == null) throw new ApiError(`${label}: this field is required.`);
-  return n;
-}
-
-function optionalDate(v: unknown, label: string) {
-  const s = str(v);
-  if (!s) return null;
-  const d = new Date(s);
-  if (Number.isNaN(d.getTime())) throw new ApiError(`${label}: enter a valid date.`);
-  return d;
-}
 
 type ParsedItem = {
   id: number | null;

@@ -9,6 +9,7 @@ async function main() {
 
   await prisma.$executeRawUnsafe(`
     TRUNCATE TABLE
+      sale_item_lots,
       sale_payments,
       sale_items,
       sales,

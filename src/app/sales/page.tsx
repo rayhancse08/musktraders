@@ -1,218 +1,150 @@
 "use client";
 
-import React, { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
+import { useState } from "react";
+import Link from "next/link";
 import { apiFetch } from "@/lib/apiFetch";
 import { getApiBase } from "@/lib/api-config";
-import { Sale, SaleDetail, SaleFormData } from "@/types/sale";
+import { cn } from "@/lib/utils";
+import { KpiCard } from "@/components/inventory/kpi-card";
+import { PageHeader, SearchInput } from "@/components/inventory/ui-primitives";
+import { AsyncSelect } from "@/components/inventory/async-select";
 import SaleTable from "@/components/Sales/SaleTable";
-import SaleCreateModal from "@/components/Sales/SaleCreateModal";
-import SaleDetailModal from "@/components/Sales/SaleDetailModal";
-import { saleKeys, useSales } from "@/hooks/useSales";
+import { usd as money } from "@/lib/format-number";
+import { SALE_STATUSES } from "@/lib/sale-math";
+import { useSales } from "@/hooks/useSales";
+import { StoreOption } from "@/types/sale";
 
-const EMPTY_FORM: SaleFormData = {
-  date: new Date().toISOString().slice(0, 10),
-  delivery_date: "",
-  billing_company: "",
-  store: "",
-  status: "confirmed",
-  shipping_charge: "",
-  discount_type: "flat",
-  discount_amount: "",
-  sale_items: [],
+const PAGE_SIZE = 20;
+
+const DATE_RANGES = [
+  { key: "", label: "Any date" },
+  { key: "today", label: "Today" },
+  { key: "past_7_days", label: "Past 7 days" },
+  { key: "this_month", label: "This month" },
+  { key: "this_year", label: "This year" },
+];
+
+const STATUS_FILTERS = [{ key: "", label: "All" }, ...SALE_STATUSES];
+
+const loadStores = async (q: string): Promise<StoreOption[]> => {
+  const res = await apiFetch(`${getApiBase()}/stores/autocomplete/?q=${encodeURIComponent(q)}`);
+  return res.results ?? res;
 };
 
+function Chips<T extends string>({
+  options, value, onChange,
+}: {
+  options: readonly { key: T | ""; label: string }[];
+  value: string;
+  onChange: (key: T | "") => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1 rounded-xl bg-slate-100/80 p-1">
+      {options.map(({ key, label }) => (
+        <button
+          key={key}
+          type="button"
+          onClick={() => onChange(key)}
+          className={cn(
+            "rounded-lg px-3 py-1.5 text-xs font-medium transition",
+            value === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700",
+          )}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function SalesPage() {
-  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [store, setStore] = useState({ id: "", name: "" });
+  const [status, setStatus] = useState("");
+  const [dateRange, setDateRange] = useState("");
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useSales({ search, status: statusFilter, page });
-  const sales = data?.results ?? [];
-  const total = data?.count ?? 0;
-  const loading = isLoading && !data;
-
-  const refreshSales = () => queryClient.invalidateQueries({ queryKey: saleKeys.all() });
-
-  const [createOpen, setCreateOpen] = useState(false);
-  const [formData, setFormData] = useState<SaleFormData>(EMPTY_FORM);
-
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailSale, setDetailSale] = useState<SaleDetail | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const openDetail = async (id: number) => {
-    setDetailLoading(true);
-    setDetailOpen(true);
-    try {
-      const data = await apiFetch(`${getApiBase()}/sales/${id}/`);
-      setDetailSale(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setDetailLoading(false);
-    }
-  };
-
-  const handleCreate = async () => {
-    setSaving(true);
-    setError(null);
-    try {
-      await apiFetch(`${getApiBase()}/sales/`, {
-        method: "POST",
-        body: JSON.stringify(formData),
-      });
-      setCreateOpen(false);
-      setFormData(EMPTY_FORM);
-      refreshSales();
-    } catch (err: any) {
-      setError(err.message ?? "Failed to create sale");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveEdit = async (saleId: number, payload: any) => {
-    setSaving(true);
-    setError(null);
-
-    try {
-      const body = {
-        date: payload.date,
-        delivery_date: payload.delivery_date || null,
-        billing_company: payload.billing_company || null,
-        store: payload.store,
-        status: payload.status,
-        shipping_charge: payload.shipping_charge || "0.0000",
-        discount_type: payload.discount_type,
-        discount_amount: payload.discount_amount || "0.0000",
-        sale_items: (payload.sale_items ?? []).map((item: any) => ({
-          product: item.product,
-          quantity: item.quantity || "0",
-          packet_price: item.packet_price || "0.0000",
-          price: item.price || item.price || "0.0000",
-          discount: item.discount || "0.0000",
-        })),
-      };
-
-      await apiFetch(`${getApiBase()}/sales/${saleId}/`, {
-        method: "PATCH",
-        body: JSON.stringify(body),
-      });
-
-      await openDetail(saleId);
-      await refreshSales();
-    } catch (err: any) {
-      setError(err.message ?? "Failed to update sale");
-      console.error(err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-
-
-  const handleStatusChange = async (id: number, status: string) => {
-    try {
-      const updated = await apiFetch(`${getApiBase()}/sales/${id}/status/`, {
-        method: "PATCH",
-        body: JSON.stringify({ status }),
-      });
-      setDetailSale(updated);
-      refreshSales();
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleAddPayment = async (saleId: number, amount: string, date: string) => {
-    await apiFetch(`${getApiBase()}/payments/`, {
-      method: "POST",
-      body: JSON.stringify({ sale: saleId, amount, date }),
-    });
-    openDetail(saleId);
+  const { data, isLoading } = useSales({ search, status, store: store.id, dateRange, page });
+  const summary = data?.summary;
+  const count = data?.count ?? 0;
+  const filtered = !!(search || store.id || status || dateRange);
+  const reset = <T,>(set: (v: T) => void) => (v: T) => {
+    set(v);
+    setPage(1);
   };
 
   return (
-    <>
-      <Breadcrumb pageName="Sales Orders" />
-
-      <div className="flex flex-wrap gap-3 items-center justify-between mb-6">
-        <div className="flex gap-2 flex-wrap">
-          <input
-            className="border px-3 py-2 rounded-lg text-sm w-64 outline-none focus:border-blue-400"
-            placeholder="Search order, store..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-          />
-          <select
-            className="border px-3 py-2 rounded-lg text-sm outline-none"
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="">All Statuses</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="packing">Packing</option>
-            <option value="delivering">Delivering</option>
-            <option value="delivered">Delivered</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </div>
-
-        <button
-          onClick={() => {
-            setFormData(EMPTY_FORM);
-            setCreateOpen(true);
-          }}
-          className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2"
-        >
-          <span className="text-lg leading-none">+</span> New Sale
-        </button>
-      </div>
-
-      <SaleTable
-        sales={sales}
-        total={total}
-        page={page}
-        loading={loading}
-        onPageChange={setPage}
-        onRowClick={openDetail}
+    <div className="space-y-6">
+      <PageHeader
+        title="Sales orders"
+        description="Orders to stores, profit per lot, deliveries and payments."
+        actions={
+          <Link href="/sales/new" className="btn-primary">
+            <span className="text-lg leading-none">+</span> New sale
+          </Link>
+        }
       />
 
-      {createOpen && (
-        <SaleCreateModal
-          formData={formData}
-          setFormData={setFormData}
-          onSave={handleCreate}
-          onClose={() => setCreateOpen(false)}
-          saving={saving}
-          error={error}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <KpiCard
+          label="Sales value"
+          value={money(summary?.total ?? 0)}
+          sub={`${count} order${count === 1 ? "" : "s"} · ${(summary?.total_carton ?? 0).toLocaleString()} ctn`}
+          accent="primary"
         />
+        <KpiCard label="Profit" value={money(summary?.profit ?? 0)} accent="blue" />
+        <KpiCard label="Received" value={money(summary?.payment ?? 0)} accent="green" />
+        <KpiCard label="Payment due" value={money(summary?.payment_due ?? 0)} accent="amber" />
+      </div>
+
+      <div className="card space-y-3 p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <SearchInput
+              className="sm:w-64"
+              placeholder="Search order no or store..."
+              value={search}
+              onChange={(e) => reset(setSearch)(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <AsyncSelect<StoreOption>
+                className="sm:w-56"
+                value={store}
+                placeholder="All stores"
+                loadOptions={loadStores}
+                onSelect={(s) => reset(setStore)({ id: String(s.id), name: s.name })}
+              />
+              {store.id && (
+                <button
+                  type="button"
+                  onClick={() => reset(setStore)({ id: "", name: "" })}
+                  className="btn-secondary px-3"
+                  aria-label="Clear store filter"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+          <Chips options={DATE_RANGES} value={dateRange} onChange={reset(setDateRange)} />
+        </div>
+        <Chips options={STATUS_FILTERS} value={status} onChange={reset(setStatus)} />
+      </div>
+
+      {filtered && (
+        <p className="-mt-3 text-xs text-slate-500">
+          Showing {count} sale{count === 1 ? "" : "s"} matching your filters. Totals above reflect the filter.
+        </p>
       )}
 
-      {detailOpen && (
-        <SaleDetailModal
-          sale={detailSale}
-          loading={detailLoading}
-          saving={saving}
-          onClose={() => { setDetailOpen(false); setDetailSale(null); }}
-          onStatusChange={handleStatusChange}
-          onAddPayment={handleAddPayment}
-          onSaveEdit={handleSaveEdit}
-        />
-
-      )}
-    </>
+      <SaleTable
+        sales={data?.results ?? []}
+        total={count}
+        page={page}
+        pageSize={PAGE_SIZE}
+        loading={isLoading && !data}
+        onPageChange={setPage}
+      />
+    </div>
   );
 }

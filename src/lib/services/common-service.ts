@@ -83,16 +83,12 @@ export async function computeMonthlyPlanAchieve(year: number, month: number) {
   const start = new Date(year, month - 1, 1);
   const end = new Date(year, month, 0, 23, 59, 59);
 
+  const { serializeSale, SALE_INCLUDE } = await import("./sale-service");
   const sales = await prisma.sale.findMany({
     where: { ...notDeleted(), date: { gte: start, lte: end } },
-    include: {
-      store: true, billingCompany: true,
-      saleItems: { include: { product: true } },
-      salePayments: { where: notDeleted() },
-    },
+    include: SALE_INCLUDE,
   });
 
-  const { serializeSale } = await import("./sale-service");
   const salesAchieve = sales.map(serializeSale).reduce((a, s) => a + num(s.total), 0);
 
   const costs = await prisma.warehouseCostItem.findMany({
@@ -127,15 +123,11 @@ export async function serializeYearlyPlan(plan: YearlyPlan) {
   const start = new Date(plan.year, 0, 1);
   const end = new Date(plan.year, 11, 31, 23, 59, 59);
 
+  const { serializeSale, SALE_INCLUDE } = await import("./sale-service");
   const sales = await prisma.sale.findMany({
     where: { ...notDeleted(), date: { gte: start, lte: end } },
-    include: {
-      store: true, billingCompany: true,
-      saleItems: { include: { product: true } },
-      salePayments: { where: notDeleted() },
-    },
+    include: SALE_INCLUDE,
   });
-  const { serializeSale } = await import("./sale-service");
   const salesAchieve = sales.map(serializeSale).reduce((a, s) => a + num(s.total), 0);
 
   const costs = await prisma.warehouseCostItem.findMany({
@@ -165,6 +157,7 @@ export async function recalculateMonthlyReport(year: number, month: number) {
   const start = new Date(year, month - 1, 1);
   const end = new Date(year, month, 0, 23, 59, 59);
 
+  const { serializeSale, SALE_INCLUDE } = await import("./sale-service");
   const [purchases, sales, costs, damages] = await Promise.all([
     prisma.purchase.findMany({
       where: { ...notDeleted(), date: { gte: start, lte: end } },
@@ -172,11 +165,7 @@ export async function recalculateMonthlyReport(year: number, month: number) {
     }),
     prisma.sale.findMany({
       where: { ...notDeleted(), date: { gte: start, lte: end } },
-      include: {
-        saleItems: { include: { product: true } },
-        salePayments: { where: notDeleted() },
-        store: true, billingCompany: true,
-      },
+      include: SALE_INCLUDE,
     }),
     prisma.warehouseCostItem.findMany({
       where: { ...notDeleted(), month: { year, month, ...notDeleted() } },
@@ -186,7 +175,6 @@ export async function recalculateMonthlyReport(year: number, month: number) {
     }),
   ]);
 
-  const { serializeSale } = await import("./sale-service");
   const { purchaseItemsTotal } = await import("./purchase-service");
   const purchaseAmt = purchases.reduce((a, p) => a + purchaseItemsTotal(p.purchaseItems), 0);
   const warehouseCost = costs.reduce((a, c) => a + num(c.amount), 0);
